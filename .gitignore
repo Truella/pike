@@ -1,0 +1,14 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+
+# Environment files
+.env.local
+
+# Vercel
+.vercel/
+
+# Supabase CLI
+supabase/.temp/
