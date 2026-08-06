@@ -1,6 +1,6 @@
 import { fetchRemotiveJobs } from "./sources/remotive.js";
 import { fetchRemoteOkJobs } from "./sources/remoteok.js";
-import { updateModuleLastRun } from "../lib/update-module-last-run.js";
+import { heartbeat } from "../lib/heartbeat.js";
 import { notifyJobsSummary } from "./notify.js";
 
 const keywords = ["react", "next.js", "nextjs", "typescript", "remote", "contract"];
@@ -8,7 +8,7 @@ const keywords = ["react", "next.js", "nextjs", "typescript", "remote", "contrac
 const requiredEnvironment = [
   "SUPABASE_URL",
   "SUPABASE_SERVICE_ROLE_KEY",
-  "PIKE_USER_ID",
+  "PIKE_OWNER_USER_ID",
   "TELEGRAM_BOT_TOKEN",
   "TELEGRAM_CHAT_ID",
 ];
@@ -41,7 +41,7 @@ if (sourceResults.every((result) => result.status === "rejected")) {
   throw new Error("All job sources failed");
 }
 
-const userId = process.env.PIKE_USER_ID;
+const userId = process.env.PIKE_OWNER_USER_ID;
 const matchingListings = listings
   .filter((listing) => {
     const searchableText = listing.searchableText.toLowerCase();
@@ -85,7 +85,7 @@ if (filteredListings.length === 0) {
   console.log(`Inserted ${newListings} new matching job listings.`);
 }
 
-await updateModuleLastRun("jobs");
+await heartbeat("jobs");
 
 const supabaseUrl = process.env.SUPABASE_URL.replace(/\/$/, "");
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;

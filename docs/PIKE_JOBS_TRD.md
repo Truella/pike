@@ -30,7 +30,7 @@ Follows PIKE_SETUP, authentication, and PIKE_THEME conventions: migrations for a
 
 **Files**: `automations/jobs/scrape.js` (or `.ts`, matching repo convention), `automations/jobs/sources/remotive.js`, `automations/jobs/sources/remoteok.js`.
 
-**Constraints**: keyword filter for React/Next.js/TypeScript/remote/contract, applied before insert, not after. Attach `PIKE_USER_ID` to every row and dedupe on `user_id,link` (upsert, not blind insert) so reruns do not duplicate. Use the Supabase service role key for writes. Each source lives in its own file so a broken or changed API response is isolated to that adapter.
+**Constraints**: keyword filter for React/Next.js/TypeScript/remote/contract, applied before insert, not after. Attach `PIKE_OWNER_USER_ID` to every row and dedupe on `user_id,link` (upsert, not blind insert) so reruns do not duplicate. Use the Supabase service role key for writes. Each source lives in its own file so a broken or changed API response is isolated to that adapter.
 
 **Verify**: running the script locally against a test Supabase project inserts real rows with correct fields populated; running it twice in a row does not create duplicates.
 
@@ -42,7 +42,7 @@ Follows PIKE_SETUP, authentication, and PIKE_THEME conventions: migrations for a
 
 **Files**: `.github/workflows/jobs-scrape.yml`
 
-**Constraints**: daily schedule (e.g. 7am), `workflow_dispatch` enabled. Pass `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `PIKE_USER_ID`. Update the owned `modules` registry row for `jobs` (`id = jobs`, `user_id = PIKE_USER_ID`, `last_run_at = now()`) on every successful run by extracting and reusing the PIKE_SETUP heartbeat update logic.
+**Constraints**: daily schedule (e.g. 7am), `workflow_dispatch` enabled. Pass `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `PIKE_OWNER_USER_ID`. Call the shared `heartbeat("jobs")` helper after every successful run; it self-creates a missing registry row and updates only `last_run_at` on conflict.
 
 **Verify**: manual trigger from the Actions tab runs successfully, new rows appear in `jobs_listings`, `modules` table shows updated `last_run_at` for the `jobs` module.
 
@@ -78,7 +78,7 @@ Follows PIKE_SETUP, authentication, and PIKE_THEME conventions: migrations for a
 
 **Files**: `automations/lib/notify.js` (shared utility, Telegram-specific), `automations/jobs/notify.js` (jobs-specific message composition).
 
-**Constraints**: `automations/lib/notify.js` sends via the Telegram Bot API (`https://api.telegram.org/bot<token>/sendMessage`), reading `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` from env/repo secrets. Its function takes only a message string, with no module-specific logic. The Jobs message reports new listings and overdue follow-ups scoped to `PIKE_USER_ID` only, not a full listing dump.
+**Constraints**: `automations/lib/notify.js` sends via the Telegram Bot API (`https://api.telegram.org/bot<token>/sendMessage`), reading `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` from env/repo secrets. Its function takes only a message string, with no module-specific logic. The Jobs message reports new listings and overdue follow-ups scoped to `PIKE_OWNER_USER_ID` only, not a full listing dump.
 
 **Verify**: manual workflow trigger produces a real message in your personal Telegram chat with correct counts.
 

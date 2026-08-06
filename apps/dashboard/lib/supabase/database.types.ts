@@ -122,7 +122,20 @@ export type Database = {
       };
     };
     Views: Record<never, never>;
-    Functions: Record<never, never>;
+    Functions: {
+      upsert_module_heartbeat: {
+        Args: {
+          module_id: string;
+          module_name: string;
+          owner_user_id: string;
+          run_at: string;
+        };
+        Returns: {
+          id: string;
+          last_run_at: string;
+        }[];
+      };
+    };
     Enums: Record<never, never>;
     CompositeTypes: Record<never, never>;
   };

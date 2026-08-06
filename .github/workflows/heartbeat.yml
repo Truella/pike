@@ -20,5 +20,5 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          PIKE_USER_ID: ${{ secrets.PIKE_USER_ID }}
+          PIKE_OWNER_USER_ID: ${{ secrets.PIKE_OWNER_USER_ID }}
         run: node automations/heartbeat.js

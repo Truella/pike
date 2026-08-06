@@ -22,7 +22,7 @@ Goal: Build the Node script that fetches listings from Remotive and RemoteOK, fi
 
 Files: `automations/jobs/scrape.js`, `automations/jobs/sources/remotive.js`, `automations/jobs/sources/remoteok.js`.
 
-Constraints: Each source file exports a function returning a normalized array of listings (same shape regardless of source API differences). Filter for React/Next.js/TypeScript/remote/contract keywords before insert. Read the owner from `PIKE_USER_ID`, attach that `user_id` to every row, and upsert on the `user_id,link` conflict, never blind insert, so reruns do not duplicate. Use the Supabase service role key from env (already available as a repo secret from PIKE_SETUP commit 6) for writes; do not use the anon key here. Keep source files independent so a change in one API's response shape does not break the other.
+Constraints: Each source file exports a function returning a normalized array of listings (same shape regardless of source API differences). Filter for React/Next.js/TypeScript/remote/contract keywords before insert. Read the owner from `PIKE_OWNER_USER_ID`, attach that `user_id` to every row, and upsert on the `user_id,link` conflict, never blind insert, so reruns do not duplicate. Use the Supabase service role key from env (already available as a repo secret from PIKE_SETUP commit 6) for writes; do not use the anon key here. Keep source files independent so a change in one API's response shape does not break the other.
 
 Verify: running `node automations/jobs/scrape.js` locally against the linked Supabase project inserts real rows with all fields populated correctly; running it a second time immediately after produces zero new duplicate rows.
 
@@ -34,7 +34,7 @@ Goal: Schedule the scraper to run daily and support manual triggering.
 
 Files: `.github/workflows/jobs-scrape.yml`
 
-Constraints: Cron schedule for once daily (e.g. 7am UTC or your preferred time), plus `workflow_dispatch`. Pass the existing `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `PIKE_USER_ID` secrets to the script. After the scraper runs, update the owned `jobs` row in the `modules` table (`id = jobs`, `user_id = PIKE_USER_ID`, `last_run_at = now()`) by extracting and reusing the existing heartbeat update logic rather than duplicating it.
+Constraints: Cron schedule for once daily (e.g. 7am UTC or your preferred time), plus `workflow_dispatch`. Pass the existing `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `PIKE_OWNER_USER_ID` secrets to the script. After the scraper runs, call the shared `heartbeat("jobs")` helper, which self-creates a missing module row and updates only `last_run_at` on conflict.
 
 Verify: manually trigger the workflow from the GitHub Actions tab; confirm it completes without errors, new listings (if any) appear in `jobs_listings`, and the `jobs` row in `modules` shows an updated `last_run_at`.
 
@@ -70,7 +70,7 @@ Goal: Send a Telegram summary notification after each scrape run, and build the 
 
 Files: `automations/lib/notify.js` (new shared utility — keep it generic enough that Study and Hackathons workflows can import it unchanged), `automations/jobs/notify.js` (jobs-specific message composition), wire the call into `automations/jobs/scrape.js` or the workflow step in `jobs-scrape.yml`.
 
-Constraints: `notify.js` in `automations/lib` calls the Telegram Bot API `sendMessage` endpoint, reading `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` from repo secrets. It exports a single function taking only a message string; no job-specific logic belongs in this file. The jobs-specific message reports the count of new listings found and count of currently-overdue follow-ups for `PIKE_USER_ID` only, not a full row dump. Add `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` as new repo secrets alongside the existing Supabase and owner ID secrets.
+Constraints: `notify.js` in `automations/lib` calls the Telegram Bot API `sendMessage` endpoint, reading `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` from repo secrets. It exports a single function taking only a message string; no job-specific logic belongs in this file. The jobs-specific message reports the count of new listings found and count of currently-overdue follow-ups for `PIKE_OWNER_USER_ID` only, not a full row dump. Add `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` as new repo secrets alongside the existing Supabase and owner ID secrets.
 
 Verify: manually trigger `jobs-scrape.yml`; confirm a real message arrives in your Telegram chat with accurate counts matching what's actually in `jobs_listings` at that moment.
 

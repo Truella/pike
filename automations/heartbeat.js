@@ -1,3 +1,3 @@
-import { updateModuleLastRun } from "./lib/update-module-last-run.js";
+import { heartbeat } from "./lib/heartbeat.js";
 
-await updateModuleLastRun("heartbeat");
+await heartbeat("heartbeat");
