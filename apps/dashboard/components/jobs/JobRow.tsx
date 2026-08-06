@@ -14,8 +14,8 @@ const statuses = [
   "closed",
 ] as const;
 
-type JobStatus = (typeof statuses)[number];
-type Job = Pick<
+export type JobStatus = (typeof statuses)[number];
+export type Job = Pick<
   Database["public"]["Tables"]["jobs_listings"]["Row"],
   | "id"
   | "title"
@@ -36,7 +36,13 @@ function formatDate(value: string | null) {
   );
 }
 
-export function JobRow({ job }: { job: Job }) {
+export function JobRow({
+  job,
+  onStatusChange,
+}: {
+  job: Job;
+  onStatusChange: (id: string, status: JobStatus) => void;
+}) {
   const [status, setStatus] = useState(job.status as JobStatus);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState(false);
@@ -46,6 +52,7 @@ export function JobRow({ job }: { job: Job }) {
   async function updateStatus(nextStatus: JobStatus) {
     const previousStatus = status;
     setStatus(nextStatus);
+    onStatusChange(job.id, nextStatus);
     setIsSaving(true);
     setError(false);
 
@@ -56,6 +63,7 @@ export function JobRow({ job }: { job: Job }) {
 
     if (!user) {
       setStatus(previousStatus);
+      onStatusChange(job.id, previousStatus);
       setIsSaving(false);
       setError(true);
       return;
@@ -69,6 +77,7 @@ export function JobRow({ job }: { job: Job }) {
 
     if (updateError) {
       setStatus(previousStatus);
+      onStatusChange(job.id, previousStatus);
       setError(true);
     }
 

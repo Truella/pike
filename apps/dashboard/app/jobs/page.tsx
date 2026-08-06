@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { JobRow } from "@/components/jobs/JobRow";
+import { JobsTable } from "@/components/jobs/ExportButton";
 import { Card } from "@/components/ui/Card";
 import { createClient } from "@/lib/supabase/server";
 
@@ -43,24 +43,7 @@ export default async function JobsPage() {
         ) : null}
 
         {!error && jobs.length > 0 ? (
-          <div className="pike-border mt-8 overflow-x-auto rounded-token border-border bg-surface shadow-token">
-            <table className="w-full min-w-5xl border-collapse text-left">
-              <thead>
-                <tr className="pike-border border-x-0 border-t-0 border-border font-mono text-xs uppercase text-muted">
-                  <th className="px-4 py-3 font-bold">Role</th>
-                  <th className="px-4 py-3 font-bold">Source</th>
-                  <th className="px-4 py-3 font-bold">Found</th>
-                  <th className="px-4 py-3 font-bold">Follow-up</th>
-                  <th className="px-4 py-3 font-bold">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {jobs.map((job) => (
-                  <JobRow job={job} key={job.id} />
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <JobsTable initialJobs={jobs} />
         ) : null}
       </div>
     </main>
