@@ -236,6 +236,97 @@ export type Database = {
           },
         ];
       };
+      pike_content: {
+        Row: {
+          created_at: string;
+          draft_text: string;
+          id: string;
+          media_urls: string[];
+          post_type: string;
+          published_at: string | null;
+          scheduled_at: string | null;
+          source_ref: string | null;
+          source_type: string;
+          status: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          draft_text: string;
+          id?: string;
+          media_urls?: string[];
+          post_type: string;
+          published_at?: string | null;
+          scheduled_at?: string | null;
+          source_ref?: string | null;
+          source_type: string;
+          status?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          draft_text?: string;
+          id?: string;
+          media_urls?: string[];
+          post_type?: string;
+          published_at?: string | null;
+          scheduled_at?: string | null;
+          source_ref?: string | null;
+          source_type?: string;
+          status?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "pike_content_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      pike_topics_bank: {
+        Row: {
+          created_at: string;
+          id: string;
+          notes: string | null;
+          source: string;
+          topic: string;
+          used: boolean;
+          used_at: string | null;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          notes?: string | null;
+          source: string;
+          topic: string;
+          used?: boolean;
+          used_at?: string | null;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          notes?: string | null;
+          source?: string;
+          topic?: string;
+          used?: boolean;
+          used_at?: string | null;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "pike_topics_bank_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<never, never>;
     Functions: {
