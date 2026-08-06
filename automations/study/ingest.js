@@ -1,4 +1,5 @@
 import { parseSidebar } from "./parseSidebar.js";
+import { heartbeat } from "../lib/heartbeat.js";
 
 const sidebarUrl =
   "https://raw.githubusercontent.com/yangshun/front-end-interview-handbook/main/website/sidebars.js";
@@ -126,6 +127,8 @@ await request(progressEndpoint, {
     })),
   ),
 });
+
+await heartbeat("study");
 
 console.log(
   `Synced ${topics.length} upstream topics and retained ${retainedTopics.length} missing upstream topics.`,
