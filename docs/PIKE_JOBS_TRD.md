@@ -6,7 +6,7 @@ Module 1: Job & Application Tracker, per the PRD's module pattern. One self-cont
 
 ## Conventions
 
-Follows PIKE_SETUP conventions: migrations for all schema, module tables prefixed `jobs_`, module workflow isolated in its own file, module route isolated under `/apps/dashboard/app/jobs`.
+Follows PIKE_SETUP, authentication, and PIKE_THEME conventions: migrations for all schema, every user-owned table follows `docs/USER_SCOPING.md`, module tables are prefixed `jobs_`, the module workflow is isolated in its own file, and the module route is isolated under `/apps/dashboard/app/jobs`. Dashboard UI reuses the shared themed primitives and semantic tokens rather than introducing module-specific colors or base components.
 
 ---
 
@@ -16,11 +16,11 @@ Follows PIKE_SETUP conventions: migrations for all schema, module tables prefixe
 
 **Achieves**: schema for storing scraped and manually-added job listings.
 
-**Files**: `supabase/migrations/0002_create_jobs_listings.sql`
+**Files**: `supabase/migrations/0004_create_jobs_listings.sql`
 
-**Covers**: table with `id, title, company, link, source, found_at, status, applied_at, follow_up_at, notes`. `status` constrained to the flow: `saved / applied / follow-up / interview / offer / closed`. `link` unique, since it's the dedupe key for the scraper.
+**Covers**: table with `id, user_id, title, company, link, source, found_at, status, applied_at, follow_up_at, notes`. `user_id` is a required foreign key to `auth.users`; RLS and operation-specific policies enforce `user_id = auth.uid()`. `status` defaults to `saved` and is constrained to `saved / applied / follow-up / interview / offer / closed`. The composite constraint `unique (user_id, link)` is the scraper dedupe key and permits separate users to own the same public listing.
 
-**Verify**: `supabase migration list` shows `0002` applied; table visible in Supabase dashboard with unique constraint on `link` confirmed (duplicate insert fails as expected).
+**Verify**: `supabase migration list` shows `0004` applied; the table is visible in Supabase with the composite unique constraint confirmed; a duplicate link for one owner fails, the same link for different owners succeeds, and RLS prevents cross-user access.
 
 ---
 
@@ -30,7 +30,7 @@ Follows PIKE_SETUP conventions: migrations for all schema, module tables prefixe
 
 **Files**: `automations/jobs/scrape.js` (or `.ts`, matching repo convention), `automations/jobs/sources/remotive.js`, `automations/jobs/sources/remoteok.js`.
 
-**Constraints**: keyword filter for React/Next.js/TypeScript/remote/contract, applied before insert, not after. Dedupe on `link` (upsert, not blind insert) so re-runs don't duplicate. Use the Supabase service role key (already set up as a repo secret in PIKE_SETUP) for writes. Each source lives in its own file so a broken/changed API on one source doesn't block the other.
+**Constraints**: keyword filter for React/Next.js/TypeScript/remote/contract, applied before insert, not after. Attach `PIKE_USER_ID` to every row and dedupe on `user_id,link` (upsert, not blind insert) so reruns do not duplicate. Use the Supabase service role key for writes. Each source lives in its own file so a broken or changed API response is isolated to that adapter.
 
 **Verify**: running the script locally against a test Supabase project inserts real rows with correct fields populated; running it twice in a row does not create duplicates.
 
@@ -42,7 +42,7 @@ Follows PIKE_SETUP conventions: migrations for all schema, module tables prefixe
 
 **Files**: `.github/workflows/jobs-scrape.yml`
 
-**Constraints**: daily schedule (e.g. 7am), `workflow_dispatch` enabled. Updates the `modules` registry row for `jobs` (`last_run_at`) on every run, per the PIKE_SETUP heartbeat pattern — reuse that pattern, don't reinvent it.
+**Constraints**: daily schedule (e.g. 7am), `workflow_dispatch` enabled. Pass `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `PIKE_USER_ID`. Update the owned `modules` registry row for `jobs` (`id = jobs`, `user_id = PIKE_USER_ID`, `last_run_at = now()`) on every successful run by extracting and reusing the PIKE_SETUP heartbeat update logic.
 
 **Verify**: manual trigger from the Actions tab runs successfully, new rows appear in `jobs_listings`, `modules` table shows updated `last_run_at` for the `jobs` module.
 
@@ -54,7 +54,7 @@ Follows PIKE_SETUP conventions: migrations for all schema, module tables prefixe
 
 **Files**: `apps/dashboard/app/jobs/page.tsx`, `apps/dashboard/components/jobs/JobRow.tsx` (or similar, matching existing component conventions from PREP).
 
-**Constraints**: status is a dropdown that writes back to Supabase on change (this is the module's first mutation, prior routes were read-only). Follow-up dates that are overdue are visually flagged, consistent with the amber/red conventions already established in PREP's UI (per the design tokens in `globals.css` if this dashboard shares them, otherwise define equivalent tokens here).
+**Constraints**: the Server Component verifies the authenticated user and explicitly filters reads by `user_id`; the client row mutation filters by both listing `id` and the authenticated `user_id`, in addition to RLS. Status is a dropdown that writes back to Supabase on change. Overdue follow-ups use the existing theme `alert` token and `StatusTag`. Reuse `Button`, `Card`, and `StatusTag`, with no hardcoded colors or theme branches.
 
 **Verify**: changing status in the UI persists on refresh; overdue follow-ups are visibly distinct from on-track ones.
 
@@ -66,7 +66,7 @@ Follows PIKE_SETUP conventions: migrations for all schema, module tables prefixe
 
 **Files**: `apps/dashboard/components/jobs/ExportButton.tsx`, using SheetJS (already an approved library per the artifact/component conventions).
 
-**Constraints**: exports exactly what's currently visible/filtered in the table, not the full unfiltered table, if filters are active.
+**Constraints**: use SheetJS and the shared `Button`; export exactly what is currently visible or filtered, not an unfiltered full fetch. Exclude the internal `user_id` ownership column from exports.
 
 **Verify**: clicking export downloads a valid `.xlsx` file that opens correctly and matches the on-screen data.
 
@@ -78,7 +78,7 @@ Follows PIKE_SETUP conventions: migrations for all schema, module tables prefixe
 
 **Files**: `automations/lib/notify.js` (shared utility, Telegram-specific), `automations/jobs/notify.js` (jobs-specific message composition).
 
-**Constraints**: `automations/lib/notify.js` sends via the Telegram Bot API (`https://api.telegram.org/bot<token>/sendMessage`), reading `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` from env/repo secrets. Function signature should just take a message string — no module-specific logic in this file, so Study and Hackathons can import it unchanged. Jobs-specific message reports count of new listings found and count of currently-overdue follow-ups only, not a full listing dump.
+**Constraints**: `automations/lib/notify.js` sends via the Telegram Bot API (`https://api.telegram.org/bot<token>/sendMessage`), reading `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` from env/repo secrets. Its function takes only a message string, with no module-specific logic. The Jobs message reports new listings and overdue follow-ups scoped to `PIKE_USER_ID` only, not a full listing dump.
 
 **Verify**: manual workflow trigger produces a real message in your personal Telegram chat with correct counts.
 
