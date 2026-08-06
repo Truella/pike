@@ -1,5 +1,6 @@
 import { fetchRemotiveJobs } from "./sources/remotive.js";
 import { fetchRemoteOkJobs } from "./sources/remoteok.js";
+import { updateModuleLastRun } from "../lib/update-module-last-run.js";
 
 const keywords = ["react", "next.js", "nextjs", "typescript", "remote", "contract"];
 
@@ -50,28 +51,31 @@ const filteredListings = [
 
 if (filteredListings.length === 0) {
   console.log("No matching job listings found.");
-  process.exit(0);
+} else {
+  const supabaseUrl = process.env.SUPABASE_URL.replace(/\/$/, "");
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const endpoint = new URL(`${supabaseUrl}/rest/v1/jobs_listings`);
+
+  endpoint.searchParams.set("on_conflict", "user_id,link");
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      apikey: serviceRoleKey,
+      Authorization: `Bearer ${serviceRoleKey}`,
+      "Content-Type": "application/json",
+      Prefer: "resolution=merge-duplicates,return=minimal",
+    },
+    body: JSON.stringify(filteredListings),
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `Job upsert failed (${response.status}): ${await response.text()}`,
+    );
+  }
+
+  console.log(`Upserted ${filteredListings.length} matching job listings.`);
 }
 
-const supabaseUrl = process.env.SUPABASE_URL.replace(/\/$/, "");
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const endpoint = new URL(`${supabaseUrl}/rest/v1/jobs_listings`);
-
-endpoint.searchParams.set("on_conflict", "user_id,link");
-
-const response = await fetch(endpoint, {
-  method: "POST",
-  headers: {
-    apikey: serviceRoleKey,
-    Authorization: `Bearer ${serviceRoleKey}`,
-    "Content-Type": "application/json",
-    Prefer: "resolution=merge-duplicates,return=minimal",
-  },
-  body: JSON.stringify(filteredListings),
-});
-
-if (!response.ok) {
-  throw new Error(`Job upsert failed (${response.status}): ${await response.text()}`);
-}
-
-console.log(`Upserted ${filteredListings.length} matching job listings.`);
+await updateModuleLastRun("jobs");
