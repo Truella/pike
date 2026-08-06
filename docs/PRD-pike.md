@@ -128,9 +128,11 @@ Status flow: `saved → applied/registered → in-progress → submitted → clo
 **Schema**
 ```
 study_curriculum: id, order_index, title, section, url
-study_progress:   topic_id, status (not_started/in_progress/done),
-                   started_at, completed_at, notes, days_stuck
+study_progress:   user_id, topic_id, status (not_started/in_progress/done),
+                    created_at, started_at, completed_at, notes
 ```
+
+`study_curriculum` is shared reference data. `study_progress` is owner-scoped and unique by `(user_id, topic_id)`. Days stuck is computed from `coalesce(started_at, created_at)` rather than stored.
 
 **Ingest logic**: parse `sidebars.js` → flatten nested categories top to bottom → upsert into `study_curriculum` with incrementing `order_index`. Company-specific pages included as trailing daily topics per your call.
 

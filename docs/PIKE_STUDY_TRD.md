@@ -8,7 +8,9 @@ Source of truth: `yangshun/front-end-interview-handbook`, `website/sidebars.js` 
 
 ## Conventions
 
-Follows PIKE_SETUP conventions: migrations for all schema, module tables prefixed `study_`, module workflows isolated in their own files, module route isolated under `/apps/dashboard/app/study`.
+Follows PIKE_SETUP and PIKE_GAPS conventions: migrations for all schema, module tables prefixed `study_`, module workflows isolated in their own files, module route isolated under `/apps/dashboard/app/study`. `study_curriculum` is shared, service-role-managed reference data; `study_progress` is owner-scoped data protected by RLS.
+
+The current-topic invariant is: for the authenticated owner, select the curriculum topic with the lowest `order_index` whose progress status is not `done`. The automation and dashboard implement this query independently and must preserve this invariant.
 
 ---
 
@@ -18,13 +20,14 @@ Follows PIKE_SETUP conventions: migrations for all schema, module tables prefixe
 
 **Achieves**: schema for the flattened curriculum and per-topic progress tracking.
 
-**Files**: `supabase/migrations/0003_create_study_curriculum.sql`, `supabase/migrations/0004_create_study_progress.sql`
+**Files**: `supabase/migrations/0006_create_study_curriculum.sql`, `supabase/migrations/0007_create_study_progress.sql`, `apps/dashboard/lib/supabase/database.types.ts`
 
 **Covers**:
-- `study_curriculum`: `id, order_index, title, section, url`
-- `study_progress`: `topic_id (fk to study_curriculum.id), status, started_at, completed_at, notes, days_stuck`. `status` constrained to `not_started / in_progress / done`.
+- `study_curriculum`: shared reference data with non-null `id, order_index, title, section, url`; `id` is the stable upstream doc path/slug and `order_index` is unique. RLS permits authenticated reads only; regular users cannot insert, update, or delete curriculum rows.
+- `study_progress`: owner-scoped `user_id, topic_id, status, created_at, started_at, completed_at, notes`. `(user_id, topic_id)` is the composite primary key. `topic_id` references `study_curriculum.id` with `on delete restrict`; `status` defaults to `not_started` and is constrained to `not_started / in_progress / done`. Operation-specific RLS policies enforce ownership.
+- `days_stuck` is not stored. Consumers compute it from `date_part('day', now() - coalesce(started_at, created_at))` so repeated runs on one day cannot inflate a counter.
 
-**Verify**: both migrations apply cleanly in order; `study_progress.topic_id` foreign key enforced (inserting a progress row for a non-existent topic fails).
+**Verify**: both migrations apply cleanly in order; authenticated users can read but not mutate curriculum; progress RLS prevents cross-user access; duplicate progress for one owner/topic fails; and inserting progress for a non-existent topic fails.
 
 ---
 
@@ -34,9 +37,9 @@ Follows PIKE_SETUP conventions: migrations for all schema, module tables prefixe
 
 **Files**: `automations/study/ingest.js`, `automations/study/parseSidebar.js`
 
-**Constraints**: fetch `sidebars.js` directly from the handbook's raw GitHub content (confirmed reachable at `raw.githubusercontent.com/yangshun/front-end-interview-handbook/main/website/sidebars.js`). Flatten top to bottom exactly as confirmed: `root` array order preserved, category items expanded inline, company-specific pages included as trailing topics. `order_index` assigned by position in the flattened list. Upsert on `id` (derive a stable id from the doc path/slug) so re-running doesn't duplicate or reorder existing topics if new ones are appended later. On first ever run, also seed a matching `study_progress` row per topic with `status = not_started`.
+**Constraints**: fetch `sidebars.js` directly from the handbook's raw GitHub content (confirmed reachable at `raw.githubusercontent.com/yangshun/front-end-interview-handbook/main/website/sidebars.js`). Flatten top to bottom exactly as confirmed: `root` array order preserved, category items expanded inline, company-specific pages included as trailing topics. Normalize upstream category labels to the canonical sections Coding / Trivia / System Design / Behavioral / Resume / Company questions through a small explicit mapping object. Derive a stable `id` from each doc path/slug and upsert curriculum on `id`. Recalculate every `order_index` from the latest flattened position on every run so upstream reordering is reflected without losing progress, which remains keyed by topic ID. Because `order_index` is unique, apply reordered indexes with a collision-safe strategy rather than directly swapping occupied values. Seed missing `study_progress` rows for `PIKE_USER_ID` with `status = not_started`; never duplicate or overwrite existing progress.
 
-**Verify**: running the script populates `study_curriculum` with ~42 rows in the confirmed order; spot-check that `order_index` matches the handbook's actual sidebar sequence; running it twice does not duplicate rows or change existing `order_index` values.
+**Verify**: running the script populates `study_curriculum` with ~42 rows in the confirmed order; spot-check that `order_index` matches the handbook's actual sidebar sequence; running it twice does not duplicate rows or alter progress; an upstream reorder updates `order_index` while retaining progress by topic ID.
 
 ---
 
@@ -48,19 +51,19 @@ Follows PIKE_SETUP conventions: migrations for all schema, module tables prefixe
 
 **Constraints**: monthly schedule (confirmed sufficient given the source's actual update cadence), plus `workflow_dispatch`. Updates the `study` row in `modules` (`last_run_at`) on completion, same pattern as `jobs-scrape.yml`.
 
-**Verify**: manual trigger runs cleanly against a repo with no new content (no-op, no duplicate rows) and, if new content exists upstream, appends new rows at the correct trailing position without disturbing existing `order_index` values.
+**Verify**: manual trigger runs cleanly against a repo with no new content (no duplicate rows or progress changes) and reflects new or reordered upstream content without losing topic progress.
 
 ---
 
 ### Commit 4 — Daily accountability check and notification
 
-**Achieves**: the core accountability mechanic — daily check of current progress, notification that does not advance if yesterday's topic isn't done.
+**Achieves**: the core accountability mechanic: a daily notification that repeats the current topic until it is done.
 
 **Files**: `.github/workflows/study-daily.yml`, `automations/study/dailyCheck.js`, `automations/study/notify.js`
 
-**Constraints**: script finds the lowest `order_index` topic where `status != done` — that's "today's topic," regardless of what day it is. Do not auto-advance based on date alone. If that topic's `status` is `not_started` or `in_progress` for more than one day, increment `days_stuck` on its progress row. Notification message (via shared `automations/lib/notify.js`) reports: today's topic + link, days-stuck count if any, and yesterday's topic's actual status (done or still pending) rather than assuming completion. Daily schedule, plus `workflow_dispatch` for testing.
+**Constraints**: for `PIKE_USER_ID`, the script applies the current-topic invariant: find the lowest `order_index` topic where progress status is not `done`, regardless of the calendar date. Do not auto-advance based on date alone. Compute days stuck on read with `date_part('day', now() - coalesce(started_at, created_at))`; never persist or increment a counter. The notification, sent through `automations/lib/notify.js`, reports only the current topic title + link and its days-stuck value when greater than zero. Daily schedule plus `workflow_dispatch` for testing.
 
-**Verify**: with a topic manually left `in_progress`, next day's workflow run repeats that same topic in the notification rather than moving to the next one; marking it `done` via the dashboard causes the next run to correctly surface the following topic.
+**Verify**: with a topic manually left `in_progress`, next day's workflow run repeats that same topic with the computed days-stuck value; multiple runs on one day return the same value. Marking it `done` via the dashboard causes the next run to surface the following topic.
 
 ---
 
@@ -70,7 +73,7 @@ Follows PIKE_SETUP conventions: migrations for all schema, module tables prefixe
 
 **Files**: `apps/dashboard/app/study/page.tsx`, `apps/dashboard/components/study/TopicCard.tsx`, `apps/dashboard/components/study/ProgressBar.tsx`
 
-**Constraints**: status toggle (`not_started → in_progress → done`) writes to `study_progress` immediately, same mutation pattern as the Jobs status dropdown. Notes field is a textarea attached to the current topic's progress row, saved on blur (not on every keystroke). Progress bar shows overall completion and a per-section breakdown (Coding / Trivia / System Design / Behavioral / Resume / Company questions). Streak counter derived from consecutive days with at least one topic marked `done` — compute this from `completed_at` timestamps rather than storing a separate streak counter that could drift out of sync.
+**Constraints**: the dashboard independently applies the documented current-topic invariant. Status changes write immediately using the Jobs mutation pattern. Moving to `in_progress` sets `started_at = now()` only when it is null; moving to `done` sets `completed_at = now()`; moving backward from `done` clears `completed_at`; moving to `not_started` clears both timestamps. Notes are saved on textarea blur, not every keystroke. Compute days stuck on read with `date_part('day', now() - coalesce(started_at, created_at))`. Progress shows overall completion and the canonical per-section breakdown (Coding / Trivia / System Design / Behavioral / Resume / Company questions). Derive streaks from consecutive UTC calendar dates containing at least one `completed_at`; do not store a streak counter or apply local-time conversion.
 
 **Verify**: marking a topic done updates its status, advances what the next daily check considers "today's topic," and updates the progress bar; notes persist across page reloads.
 

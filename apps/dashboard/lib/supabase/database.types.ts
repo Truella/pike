@@ -120,6 +120,75 @@ export type Database = {
           },
         ];
       };
+      study_curriculum: {
+        Row: {
+          id: string;
+          order_index: number;
+          section: string;
+          title: string;
+          url: string;
+        };
+        Insert: {
+          id: string;
+          order_index: number;
+          section: string;
+          title: string;
+          url: string;
+        };
+        Update: {
+          id?: string;
+          order_index?: number;
+          section?: string;
+          title?: string;
+          url?: string;
+        };
+        Relationships: [];
+      };
+      study_progress: {
+        Row: {
+          completed_at: string | null;
+          created_at: string;
+          notes: string | null;
+          started_at: string | null;
+          status: string;
+          topic_id: string;
+          user_id: string;
+        };
+        Insert: {
+          completed_at?: string | null;
+          created_at?: string;
+          notes?: string | null;
+          started_at?: string | null;
+          status?: string;
+          topic_id: string;
+          user_id?: string;
+        };
+        Update: {
+          completed_at?: string | null;
+          created_at?: string;
+          notes?: string | null;
+          started_at?: string | null;
+          status?: string;
+          topic_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "study_progress_topic_id_fkey";
+            columns: ["topic_id"];
+            isOneToOne: false;
+            referencedRelation: "study_curriculum";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "study_progress_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<never, never>;
     Functions: {

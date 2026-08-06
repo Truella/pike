@@ -8,11 +8,11 @@ One prompt per commit, matching PIKE_STUDY_TRD.md. All six commits ship in a sin
 
 Goal: Create migrations for the curriculum and progress tables.
 
-Files: `supabase/migrations/0003_create_study_curriculum.sql`, `supabase/migrations/0004_create_study_progress.sql`
+Files: `supabase/migrations/0006_create_study_curriculum.sql`, `supabase/migrations/0007_create_study_progress.sql`, `apps/dashboard/lib/supabase/database.types.ts`
 
-Constraints: `study_curriculum` columns: `id, order_index, title, section, url`. `study_progress` columns: `topic_id, status, started_at, completed_at, notes, days_stuck`, with `topic_id` as a foreign key referencing `study_curriculum.id` and `status` constrained to `not_started / in_progress / done`, matching whatever status-constraint pattern was used for `jobs_listings.status`.
+Constraints: `study_curriculum` is shared reference data with non-null `id, order_index, title, section, url`; use the path-derived text ID as its primary key and make `order_index` unique. Enable RLS with one select policy for authenticated users and no regular-user write policies. `study_progress` is owner-scoped with `user_id, topic_id, status, created_at, started_at, completed_at, notes`; use `(user_id, topic_id)` as its composite primary key, reference curriculum with `on delete restrict`, and apply the ownership policies from `PIKE_GAPS.md`. Default and constrain status to `not_started / in_progress / done`. Do not store `days_stuck`; consumers compute `date_part('day', now() - coalesce(started_at, created_at))`. Update the checked-in database types for both tables.
 
-Verify: both migrations apply cleanly and in order via `supabase migration list`; attempting to insert a `study_progress` row with a `topic_id` that doesn't exist in `study_curriculum` fails as expected.
+Verify: both migrations apply cleanly and in order via `supabase migration list`; authenticated users can read but not mutate curriculum; progress is owner-isolated; duplicate owner/topic progress and progress for a non-existent topic both fail.
 
 ---PROMPT---
 
@@ -22,9 +22,9 @@ Goal: Fetch and parse the handbook's `sidebars.js`, flatten it into ordered rows
 
 Files: `automations/study/ingest.js`, `automations/study/parseSidebar.js`
 
-Constraints: Fetch from `https://raw.githubusercontent.com/yangshun/front-end-interview-handbook/main/website/sidebars.js`. Parse the `root` array preserving exact top-to-bottom order: standalone entries and category `items` arrays both flatten into the same sequence, company-specific pages included as trailing topics per the confirmed structure. Derive a stable `id` per topic from its doc slug/path so re-running is idempotent. Assign `order_index` by final flattened position. Upsert on `id` — never duplicate or reorder existing rows on a rerun. If a topic's `study_progress` row doesn't exist yet, create one with `status = not_started`.
+Constraints: Fetch from `https://raw.githubusercontent.com/yangshun/front-end-interview-handbook/main/website/sidebars.js`. Parse the `root` array preserving exact top-to-bottom order: standalone entries and category `items` arrays both flatten into the same sequence, company-specific pages included as trailing topics per the confirmed structure. Normalize upstream labels through a small explicit mapping to Coding / Trivia / System Design / Behavioral / Resume / Company questions. Derive a stable ID from each doc slug/path and upsert curriculum on `id`. Recalculate all `order_index` values on each ingest to match current upstream order, using a collision-safe strategy because the column is unique; progress remains attached by topic ID. For `PIKE_USER_ID`, create only missing progress rows with `status = not_started` and never overwrite existing progress.
 
-Verify: first run populates roughly 42 rows in `study_curriculum` in the confirmed handbook order (introduction → coding → trivia → system design → behavioral → resume → company questions); a second immediate run produces zero duplicate or reordered rows.
+Verify: first run populates roughly 42 curriculum rows in confirmed handbook order; a second run produces no duplicates or progress changes; upstream reordering updates curriculum order without losing progress.
 
 ---PROMPT---
 
@@ -46,9 +46,9 @@ Goal: Build the daily check that determines "today's topic" from actual progress
 
 Files: `.github/workflows/study-daily.yml`, `automations/study/dailyCheck.js`, `automations/study/notify.js`
 
-Constraints: `dailyCheck.js` queries `study_progress` joined to `study_curriculum`, finds the lowest `order_index` where `status != 'done'` — that row is today's topic regardless of what was "supposed" to happen today. If that topic has been `not_started` or `in_progress` for more than one day (compare `started_at` or row creation to today), increment `days_stuck`. Build a message via the shared `automations/lib/notify.js` utility (from PIKE_JOBS commit 6) reporting: today's topic title + url, `days_stuck` if greater than zero, and the true status of what would have been "yesterday's" topic rather than assuming it was completed. Daily cron plus `workflow_dispatch`.
+Constraints: for `PIKE_USER_ID`, `dailyCheck.js` joins progress to curriculum and finds the lowest `order_index` where status is not `done`; this is the current topic regardless of date. This current-topic invariant is documented in `PIKE_STUDY_TRD.md` and is implemented independently in the automation and dashboard. Compute days stuck with `date_part('day', now() - coalesce(started_at, created_at))`; do not persist a counter. Build a message via `automations/lib/notify.js` containing only the current topic title + URL and days stuck when greater than zero. Daily cron plus `workflow_dispatch`.
 
-Verify: manually set a topic to `in_progress`, trigger the workflow twice on different simulated days (or two manual runs) — confirm the same topic is reported both times and `days_stuck` increments; mark it `done`, trigger again, confirm the next topic in `order_index` is now reported instead.
+Verify: leave a topic `in_progress` and confirm later runs repeat it with live-computed days stuck; multiple runs on one day return the same value. Mark it `done` and confirm the next topic is reported.
 
 ---PROMPT---
 
@@ -58,7 +58,7 @@ Goal: Build the Study tab — today's topic card with status toggle and notes, o
 
 Files: `apps/dashboard/app/study/page.tsx`, `apps/dashboard/components/study/TopicCard.tsx`, `apps/dashboard/components/study/ProgressBar.tsx`
 
-Constraints: `TopicCard` shows the same "current topic" logic as `dailyCheck.js` (lowest `order_index` not `done`) — reuse that query logic rather than duplicating it with different behavior. Status toggle writes to `study_progress.status` on change, following the same write pattern established in the Jobs status dropdown. Notes textarea saves to `study_progress.notes` on blur, not on every keystroke. `ProgressBar` computes overall `done` count over total, plus a breakdown grouped by `study_curriculum.section`. Streak counter is computed from `completed_at` timestamps (consecutive calendar days with at least one `done`), not stored as a separate mutable counter.
+Constraints: `TopicCard` independently implements the documented current-topic invariant: the owner's lowest-order topic not marked `done`. Status writes follow the Jobs mutation pattern. Moving to `in_progress` sets `started_at = now()` if null; moving to `done` sets `completed_at = now()`; moving backward from `done` clears `completed_at`; moving to `not_started` clears both. Notes save on blur. Compute days stuck on read from `started_at` or `created_at`. `ProgressBar` computes overall and canonical per-section completion. Compute streaks from consecutive UTC dates with at least one completion; do not store a counter or convert to local time.
 
 Verify: marking the current topic `done` updates the card to show the next topic, updates the progress bar and streak, and persists correctly after a page reload; notes entered and left (blurred) are saved and reappear on reload.
 
