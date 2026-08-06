@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Pike — Style Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root,
+  [data-theme="brutalist"] {
+    --pike-bg: #0F0F0F;
+    --pike-surface: #1A1A1A;
+    --pike-ink: #F5F5F0;
+    --pike-border: #F5F5F0;
+    --pike-signal: #39FF6A;
+    --pike-alert: #FF3B3B;
+    --pike-muted: #8A8A85;
+    --pike-radius: 0px;
+    --pike-border-width: 2px;
+    --pike-shadow: none;
+    --pike-display-font: 'Space Grotesk', sans-serif;
+    --pike-display-transform: uppercase;
+    --pike-tag-clip: polygon(0 0, 100% 0, 100% 70%, 88% 100%, 0 100%);
+  }
+
+  [data-theme="warm"] {
+    --pike-bg: #F4F1EA;
+    --pike-surface: #FFFFFF;
+    --pike-ink: #2B241C;
+    --pike-border: #E4DDCF;
+    --pike-signal: #2F8F5B;
+    --pike-alert: #C4432E;
+    --pike-muted: #8A7F6C;
+    --pike-radius: 10px;
+    --pike-border-width: 1px;
+    --pike-shadow: 0 4px 16px rgba(43,36,28,0.08);
+    --pike-display-font: 'Space Grotesk', sans-serif;
+    --pike-display-transform: none;
+    --pike-tag-clip: none;
+  }
+
+  [data-theme="pop"] {
+    --pike-bg: #D6D0F5;
+    --pike-surface: #FFFFFF;
+    --pike-ink: #16130F;
+    --pike-border: #16130F;
+    --pike-signal: #2AC9C9;
+    --pike-alert: #FF3EA5;
+    --pike-muted: #6B655C;
+    --pike-radius: 8px;
+    --pike-border-width: 3px;
+    --pike-shadow: 5px 5px 0 #16130F;
+    --pike-display-font: 'Space Grotesk', sans-serif;
+    --pike-display-transform: uppercase;
+    --pike-tag-clip: none;
+    --pike-accent-1: #FFE14B;
+    --pike-accent-2: #FF8AD4;
+    --pike-accent-3: #6FE3D9;
+  }
+
+  [data-theme="sticky"] {
+    --pike-bg: #EFE9DC;
+    --pike-surface: #FFF3B0;
+    --pike-ink: #2B241C;
+    --pike-border: #D8CBA0;
+    --pike-signal: #3E8E5A;
+    --pike-alert: #C4432E;
+    --pike-muted: #8A7F6C;
+    --pike-radius: 2px;
+    --pike-border-width: 1px;
+    --pike-shadow: 3px 6px 14px rgba(43,36,28,0.16);
+    --pike-display-font: 'Space Grotesk', sans-serif;
+    --pike-display-transform: none;
+    --pike-tag-clip: none;
+    --pike-accent-1: #FFF3B0;
+    --pike-accent-2: #FFD6E8;
+    --pike-accent-3: #D6EAFF;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--pike-bg);
+    color: var(--pike-ink);
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    padding: 48px 24px 80px;
+    transition: background 0.25s ease, color 0.25s ease;
+  }
+
+  .switcher {
+    position: sticky;
+    top: 0;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 40px;
+    padding: 14px;
+    background: var(--pike-surface);
+    border: var(--pike-border-width) solid var(--pike-border);
+    border-radius: var(--pike-radius);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+    width: fit-content;
+    z-index: 10;
+  }
+
+  .switcher-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--pike-muted);
+    margin-right: 4px;
+  }
+
+  .switcher button {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 10px 18px;
+    background: transparent;
+    color: var(--pike-muted);
+    border: var(--pike-border-width) solid var(--pike-border);
+    border-radius: var(--pike-radius);
+    cursor: pointer;
+  }
+
+  .switcher button:hover {
+    color: var(--pike-ink);
+  }
+
+  .switcher button.active {
+    color: var(--pike-bg);
+    background: var(--pike-ink);
+  }
+
+  .wrap { max-width: 900px; margin: 0 auto; }
+
+  h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 40px;
+    letter-spacing: -0.02em;
+    margin: 0 0 4px;
+  }
+
+  .sub {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--pike-muted);
+    font-size: 13px;
+    margin-bottom: 48px;
+  }
+
+  h1 { font-family: var(--pike-display-font); text-transform: var(--pike-display-transform); }
+
+  h2 {
+    font-family: var(--pike-display-font);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: 15px;
+    border-bottom: var(--pike-border-width) solid var(--pike-border);
+    padding-bottom: 10px;
+    margin: 56px 0 20px;
+  }
+
+  /* PALETTE */
+  .palette {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 14px;
+  }
+
+  .swatch {
+    border: var(--pike-border-width) solid var(--pike-border);
+    border-radius: var(--pike-radius);
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .swatch-color { height: 80px; }
+
+  .swatch-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 10px 12px;
+    background: var(--pike-surface);
+  }
+
+  .swatch-label .name { display: block; font-weight: 700; margin-bottom: 2px; }
+  .swatch-label .hex { color: var(--pike-muted); }
+
+  /* TYPE */
+  .type-row {
+    border: var(--pike-border-width) solid var(--pike-border);
+    border-radius: var(--pike-radius);
+    box-shadow: var(--pike-shadow);
+    padding: 20px;
+    margin-bottom: 14px;
+    background: var(--pike-surface);
+  }
+
+  .type-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--pike-signal);
+    margin-bottom: 10px;
+    display: block;
+  }
+
+  .type-display { font-family: var(--pike-display-font); font-weight: 700; font-size: 28px; text-transform: var(--pike-display-transform); letter-spacing: 0.01em; }
+  .type-body { font-family: 'Inter', sans-serif; font-size: 16px; line-height: 1.5; max-width: 520px; }
+  .type-data { font-family: 'JetBrains Mono', monospace; font-size: 16px; }
+
+  /* SHAPES / COMPONENTS */
+  .row { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+
+  .card {
+    border: var(--pike-border-width) solid var(--pike-border);
+    border-radius: var(--pike-radius);
+    box-shadow: var(--pike-shadow);
+    background: var(--pike-surface);
+    padding: 20px;
+    width: 220px;
+  }
+
+  .card-title { font-family: var(--pike-display-font); font-weight: 700; font-size: 16px; margin-bottom: 6px; }
+  .card-meta { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--pike-muted); }
+
+  .btn {
+    font-family: var(--pike-display-font);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-size: 13px;
+    background: var(--pike-ink);
+    color: var(--pike-bg);
+    border: var(--pike-border-width) solid var(--pike-border);
+    border-radius: var(--pike-radius);
+    box-shadow: var(--pike-shadow);
+    padding: 12px 20px;
+    cursor: pointer;
+  }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--pike-ink);
+    box-shadow: none;
+  }
+
+  /* signature: diagonal-cut tag (brutalist) / soft pill (warm) */
+  .tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 6px 14px 6px 10px;
+    border: var(--pike-border-width) solid var(--pike-border);
+    border-radius: var(--pike-radius);
+    display: inline-block;
+    position: relative;
+    clip-path: var(--pike-tag-clip);
+  }
+
+  .tag-live { color: var(--pike-signal); border-color: var(--pike-signal); }
+  .tag-urgent { color: var(--pike-alert); border-color: var(--pike-alert); }
+  .tag-neutral { color: var(--pike-ink); }
+
+  .status-block {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  /* POP theme: colorful cards + tags, soft offset shadow instead of harsh */
+  [data-theme="pop"] .card:nth-child(1) { background: var(--pike-accent-1); }
+  [data-theme="pop"] .card:nth-child(2) { background: var(--pike-accent-3); }
+  [data-theme="pop"] .tag-neutral:nth-of-type(3n+1) { background: var(--pike-accent-1); }
+  [data-theme="pop"] .tag-neutral:nth-of-type(3n+2) { background: var(--pike-accent-2); color: #16130F; }
+  [data-theme="pop"] .btn { box-shadow: 5px 5px 0 var(--pike-border); }
+  [data-theme="pop"] .btn:active { box-shadow: 2px 2px 0 var(--pike-border); transform: translate(3px, 3px); }
+  [data-theme="pop"] .type-row:nth-of-type(2) { background: var(--pike-accent-3); }
+
+  /* STICKY theme: sticky-note cards, slight rotation + folded corner */
+  [data-theme="sticky"] .card {
+    position: relative;
+    box-shadow: var(--pike-shadow);
+    border: none;
+  }
+  [data-theme="sticky"] .card:nth-child(1) { background: var(--pike-accent-1); transform: rotate(-2deg); }
+  [data-theme="sticky"] .card:nth-child(2) { background: var(--pike-accent-2); transform: rotate(1.5deg); }
+  [data-theme="sticky"] .card::after {
+    content: "";
+    position: absolute;
+    top: 0; right: 0;
+    width: 16px; height: 16px;
+    background: rgba(0,0,0,0.08);
+    clip-path: polygon(100% 0, 0 0, 100% 100%);
+  }
+  [data-theme="sticky"] .tag {
+    border: none;
+    box-shadow: 2px 3px 8px rgba(43,36,28,0.15);
+  }
+  [data-theme="sticky"] .tag-neutral:nth-of-type(3n+1) { background: var(--pike-accent-1); color: var(--pike-ink); transform: rotate(-2deg); display: inline-block; }
+  [data-theme="sticky"] .tag-neutral:nth-of-type(3n+2) { background: var(--pike-accent-3); color: var(--pike-ink); transform: rotate(1.5deg); display: inline-block; }
+  [data-theme="sticky"] .type-row:nth-of-type(1) { background: var(--pike-accent-3); }
+  [data-theme="sticky"] .type-row:nth-of-type(3) { background: var(--pike-accent-2); }
+</style>
+</head>
+<body data-theme="brutalist">
+<div class="wrap">
+
+  <div class="switcher">
+    <span class="switcher-label">Theme:</span>
+    <button class="active" onclick="setTheme('brutalist', this)">Brutalist</button>
+    <button onclick="setTheme('warm', this)">Warm</button>
+    <button onclick="setTheme('pop', this)">Brutalist+</button>
+    <button onclick="setTheme('sticky', this)">Sticky</button>
+  </div>
+
+  <h1>PIKE</h1>
+  <div class="sub">// same components, full theme swap — not just light/dark</div>
+
+  <h2>01 — Palette</h2>
+  <div class="palette">
+    <div class="swatch">
+      <div class="swatch-color" style="background:#0F0F0F"></div>
+      <div class="swatch-label"><span class="name">bg</span><span class="hex">#0F0F0F</span></div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background:#1A1A1A"></div>
+      <div class="swatch-label"><span class="name">surface</span><span class="hex">#1A1A1A</span></div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background:#F5F5F0"></div>
+      <div class="swatch-label"><span class="name">ink / border</span><span class="hex">#F5F5F0</span></div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background:#39FF6A"></div>
+      <div class="swatch-label"><span class="name">signal</span><span class="hex">#39FF6A</span></div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background:#FF3B3B"></div>
+      <div class="swatch-label"><span class="name">alert</span><span class="hex">#FF3B3B</span></div>
+    </div>
+  </div>
+
+  <h2>02 — Type</h2>
+  <div class="type-row">
+    <span class="type-tag">Display — Space Grotesk 700</span>
+    <div class="type-display">Module Registry</div>
+  </div>
+  <div class="type-row">
+    <span class="type-tag">Body — Inter 400/500</span>
+    <div class="type-body">Every module writes its own last_run_at back to this table, so this is the one place you can glance at to confirm nothing has quietly stopped running.</div>
+  </div>
+  <div class="type-row">
+    <span class="type-tag">Data / Utility — JetBrains Mono</span>
+    <div class="type-data">last_run_at: 2026-08-06T07:00:00Z</div>
+  </div>
+
+  <h2>03 — Cards &amp; Buttons</h2>
+  <div class="row">
+    <div class="card">
+      <div class="card-title">Jobs</div>
+      <div class="card-meta">last run 2h ago</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Study</div>
+      <div class="card-meta">last run 1d ago</div>
+    </div>
+    <button class="btn">Approve</button>
+    <button class="btn btn-outline">Reject</button>
+  </div>
+
+  <h2>04 — Signature: diagonal-cut status tags</h2>
+  <div class="status-block">
+    <span class="tag tag-live">Live</span>
+    <span class="tag tag-urgent">Overdue</span>
+    <span class="tag tag-neutral">Saved</span>
+    <span class="tag tag-neutral">In Progress</span>
+    <span class="tag tag-live">Published</span>
+  </div>
+
+</div>
+
+<script>
+  function setTheme(theme, btn) {
+    document.body.setAttribute('data-theme', theme);
+    document.querySelectorAll('.switcher button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

@@ -44,6 +44,32 @@ export type Database = {
           },
         ];
       };
+      pike_preferences: {
+        Row: {
+          theme: string | null;
+          updated_at: string | null;
+          user_id: string;
+        };
+        Insert: {
+          theme?: string | null;
+          updated_at?: string | null;
+          user_id: string;
+        };
+        Update: {
+          theme?: string | null;
+          updated_at?: string | null;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "pike_preferences_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<never, never>;
     Functions: Record<never, never>;

@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { Card } from "@/components/ui/Card";
+import { StatusTag } from "@/components/ui/StatusTag";
 
 function formatLastRun(value: string | null) {
   if (!value) return "Never";
@@ -25,51 +27,50 @@ export default async function SettingsPage() {
     .order("name");
 
   return (
-    <main className="min-h-screen bg-zinc-950 px-6 py-12 text-zinc-100">
+    <main className="min-h-screen bg-background px-6 py-12 text-ink">
       <div className="mx-auto max-w-4xl">
-        <p className="text-sm font-medium uppercase tracking-[0.2em] text-emerald-400">
-          Pike
+        <p className="font-mono text-xs font-bold uppercase text-signal">
+          {"// Settings"}
         </p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight">Modules</h1>
-        <p className="mt-2 text-zinc-400">
+        <h1 className="pike-display mt-2 text-4xl font-bold">Modules</h1>
+        <p className="mt-2 text-muted">
           Read-only status for your registered automations.
         </p>
 
         {error ? (
-          <p className="mt-8 rounded-xl border border-red-900 bg-red-950/40 p-4 text-red-300">
+          <p className="pike-border mt-8 rounded-token border-alert p-4 text-alert">
             Unable to load modules: {error.message}
           </p>
         ) : null}
 
         {!error && modules.length === 0 ? (
-          <p className="mt-8 rounded-xl border border-zinc-800 bg-zinc-900 p-6 text-zinc-400">
+          <Card className="mt-8 text-muted">
             No modules are registered for this account yet.
-          </p>
+          </Card>
         ) : null}
 
         {!error && modules.length > 0 ? (
-          <ul className="mt-8 grid gap-4">
+          <ul className="pike-card-list mt-8 grid gap-4">
             {modules.map((module) => (
-              <li
-                className="rounded-xl border border-zinc-800 bg-zinc-900 p-5"
-                key={module.id}
-              >
+              <li key={module.id}>
+                <Card>
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <h2 className="text-lg font-semibold">{module.name}</h2>
-                  <span className="rounded-full bg-emerald-400/10 px-3 py-1 text-xs font-medium uppercase tracking-wide text-emerald-300">
+                  <h2 className="pike-display text-lg font-bold">{module.name}</h2>
+                  <StatusTag variant="live">
                     {module.status ?? "active"}
-                  </span>
+                  </StatusTag>
                 </div>
-                <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-[8rem_1fr]">
-                  <dt className="text-zinc-500">Last run</dt>
-                  <dd className="text-zinc-300">
+                <dl className="mt-4 grid gap-3 font-mono text-xs sm:grid-cols-[8rem_1fr]">
+                  <dt className="uppercase text-muted">Last run</dt>
+                  <dd className="text-ink">
                     {formatLastRun(module.last_run_at)}
                   </dd>
-                  <dt className="text-zinc-500">Notes</dt>
-                  <dd className="whitespace-pre-wrap text-zinc-300">
+                  <dt className="uppercase text-muted">Notes</dt>
+                  <dd className="whitespace-pre-wrap text-ink">
                     {module.notes || "None"}
                   </dd>
                 </dl>
+                </Card>
               </li>
             ))}
           </ul>

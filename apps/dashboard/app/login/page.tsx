@@ -3,6 +3,8 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -32,13 +34,13 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-zinc-950 px-6 py-12 text-zinc-100">
-      <div className="w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900 p-8 shadow-2xl shadow-black/30">
-        <p className="mb-2 text-sm font-medium uppercase tracking-[0.2em] text-emerald-400">
+    <main className="flex min-h-screen items-center justify-center bg-background px-6 py-12 text-ink">
+      <Card className="w-full max-w-sm p-8">
+        <p className="mb-2 font-mono text-xs font-bold uppercase text-signal">
           Pike
         </p>
-        <h1 className="text-3xl font-semibold tracking-tight">Sign in</h1>
-        <p className="mt-2 text-sm leading-6 text-zinc-400">
+        <h1 className="pike-display text-3xl font-bold">Sign in</h1>
+        <p className="mt-2 text-sm leading-6 text-muted">
           Use your dashboard email and password to continue.
         </p>
 
@@ -47,7 +49,7 @@ export default function LoginPage() {
             Email
             <input
               autoComplete="email"
-              className="mt-2 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2.5 text-zinc-100 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+              className="pike-border mt-2 w-full rounded-token border-border bg-background px-3 py-2.5 text-ink outline-none transition focus:border-signal"
               id="email"
               name="email"
               required
@@ -59,7 +61,7 @@ export default function LoginPage() {
             Password
             <input
               autoComplete="current-password"
-              className="mt-2 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2.5 text-zinc-100 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+              className="pike-border mt-2 w-full rounded-token border-border bg-background px-3 py-2.5 text-ink outline-none transition focus:border-signal"
               id="password"
               name="password"
               required
@@ -68,20 +70,16 @@ export default function LoginPage() {
           </label>
 
           {error ? (
-            <p className="rounded-lg border border-red-900 bg-red-950/50 px-3 py-2 text-sm text-red-300">
+            <p className="pike-border rounded-token border-alert px-3 py-2 text-sm text-alert">
               {error}
             </p>
           ) : null}
 
-          <button
-            className="w-full rounded-lg bg-emerald-400 px-4 py-2.5 font-semibold text-zinc-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={isSubmitting}
-            type="submit"
-          >
+          <Button className="w-full" disabled={isSubmitting} type="submit">
             {isSubmitting ? "Signing in..." : "Sign in"}
-          </button>
+          </Button>
         </form>
-      </div>
+      </Card>
     </main>
   );
 }
