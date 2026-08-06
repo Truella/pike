@@ -9,6 +9,56 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      jobs_listings: {
+        Row: {
+          applied_at: string | null;
+          company: string;
+          follow_up_at: string | null;
+          found_at: string;
+          id: string;
+          link: string;
+          notes: string | null;
+          source: string;
+          status: string;
+          title: string;
+          user_id: string;
+        };
+        Insert: {
+          applied_at?: string | null;
+          company: string;
+          follow_up_at?: string | null;
+          found_at?: string;
+          id?: string;
+          link: string;
+          notes?: string | null;
+          source: string;
+          status?: string;
+          title: string;
+          user_id: string;
+        };
+        Update: {
+          applied_at?: string | null;
+          company?: string;
+          follow_up_at?: string | null;
+          found_at?: string;
+          id?: string;
+          link?: string;
+          notes?: string | null;
+          source?: string;
+          status?: string;
+          title?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "jobs_listings_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       modules: {
         Row: {
           id: string;
