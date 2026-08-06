@@ -189,6 +189,53 @@ export type Database = {
           },
         ];
       };
+      hackathons_entries: {
+        Row: {
+          deadline: string | null;
+          found_at: string;
+          id: string;
+          link: string;
+          name: string;
+          notes: string | null;
+          organizer: string | null;
+          prize: string | null;
+          status: string;
+          user_id: string;
+        };
+        Insert: {
+          deadline?: string | null;
+          found_at?: string;
+          id?: string;
+          link: string;
+          name: string;
+          notes?: string | null;
+          organizer?: string | null;
+          prize?: string | null;
+          status?: string;
+          user_id: string;
+        };
+        Update: {
+          deadline?: string | null;
+          found_at?: string;
+          id?: string;
+          link?: string;
+          name?: string;
+          notes?: string | null;
+          organizer?: string | null;
+          prize?: string | null;
+          status?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "hackathons_entries_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<never, never>;
     Functions: {
