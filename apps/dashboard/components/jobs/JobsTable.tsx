@@ -34,8 +34,14 @@ export function JobsTable({ initialJobs }: { initialJobs: Job[] }) {
 
       if (!user) return;
 
+      const channelName = `jobs_realtime_${user.id}`;
+      const existingChannel = supabase.channel(channelName);
+      if (existingChannel) {
+        await supabase.removeChannel(existingChannel);
+      }
+
       channel = supabase
-        .channel("jobs_realtime")
+        .channel(channelName)
         .on(
           "postgres_changes",
           {

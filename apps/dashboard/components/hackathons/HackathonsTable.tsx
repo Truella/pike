@@ -37,8 +37,14 @@ export function HackathonsTable({
 
       if (!user) return;
 
+      const channelName = `hackathons_realtime_${user.id}`;
+      const existingChannel = supabase.channel(channelName);
+      if (existingChannel) {
+        await supabase.removeChannel(existingChannel);
+      }
+
       channel = supabase
-        .channel("hackathons_realtime")
+        .channel(channelName)
         .on(
           "postgres_changes",
           {
