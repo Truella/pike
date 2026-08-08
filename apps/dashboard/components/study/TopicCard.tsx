@@ -84,18 +84,23 @@ export function TopicCard({ currentTopic, progress, onUpdate }: TopicCardProps) 
     }
   };
 
-  const handleNotesBlur = async () => {
-    if ((progress?.notes || "") === notes) return;
-    setIsSaving(true);
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  const handleSaveNotes = async () => {
+    setIsSavingNotes(true);
     setError(null);
+    setSaveSuccess(false);
 
     try {
       await onUpdate(currentTopic.id, { notes: notes || null });
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2500);
     } catch (err: any) {
       setNotes(progress?.notes || "");
       setError("Failed to save notes. Reverting changes.");
     } finally {
-      setIsSaving(false);
+      setIsSavingNotes(false);
     }
   };
 
@@ -162,9 +167,21 @@ export function TopicCard({ currentTopic, progress, onUpdate }: TopicCardProps) 
           placeholder="Write key takeaways, questions, or links to your practice solutions..."
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          onBlur={handleNotesBlur}
-          disabled={isSaving}
+          disabled={isSaving || isSavingNotes}
         />
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={handleSaveNotes}
+            disabled={isSaving || isSavingNotes}
+            className="pike-border rounded-token border-border bg-surface px-4 py-2 font-mono text-xs font-bold uppercase text-ink hover:bg-signal hover:text-background focus:outline-none disabled:opacity-50"
+          >
+            {isSavingNotes ? "Saving..." : "Save Notes"}
+          </button>
+          {saveSuccess && (
+            <span className="font-mono text-xs font-bold text-signal">Saved!</span>
+          )}
+        </div>
       </div>
 
       {error && (
@@ -172,7 +189,7 @@ export function TopicCard({ currentTopic, progress, onUpdate }: TopicCardProps) 
       )}
 
       {isSaving && (
-        <p className="font-mono text-xs text-muted animate-pulse">Saving changes...</p>
+        <p className="font-mono text-xs text-muted animate-pulse">Saving status change...</p>
       )}
     </Card>
   );

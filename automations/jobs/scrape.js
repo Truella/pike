@@ -3,7 +3,6 @@ import { fetchRemoteOkJobs } from "./sources/remoteok.js";
 import { heartbeat } from "../lib/heartbeat.js";
 import { notifyJobsSummary } from "./notify.js";
 
-const keywords = ["react", "next.js", "nextjs", "typescript", "remote", "contract"];
 
 const requiredEnvironment = [
   "SUPABASE_URL",
@@ -41,11 +40,47 @@ if (sourceResults.every((result) => result.status === "rejected")) {
   throw new Error("All job sources failed");
 }
 
+const techKeywords = [
+  "react",
+  "next.js",
+  "nextjs",
+  "typescript",
+  "javascript",
+  "frontend",
+  "front-end",
+  "front end",
+  "web developer",
+  "full stack",
+  "fullstack",
+  "software engineer",
+  "software developer",
+];
+
+const excludeKeywords = [
+  "procurement",
+  "architectural",
+  "brand strategy",
+  "accountant",
+  "recruiter",
+  "sales executive",
+  "customer support",
+];
+
 const userId = process.env.PIKE_OWNER_USER_ID;
 const matchingListings = listings
   .filter((listing) => {
+    const titleLower = listing.title.toLowerCase();
     const searchableText = listing.searchableText.toLowerCase();
-    return keywords.some((keyword) => searchableText.includes(keyword));
+
+    const matchesExclude = excludeKeywords.some(
+      (kw) => titleLower.includes(kw) || searchableText.includes(kw)
+    );
+    if (matchesExclude) return false;
+
+    const matchesTech = techKeywords.some(
+      (kw) => titleLower.includes(kw) || searchableText.includes(kw)
+    );
+    return matchesTech;
   })
   .map(({ searchableText, ...listing }) => ({ ...listing, user_id: userId }));
 const filteredListings = [

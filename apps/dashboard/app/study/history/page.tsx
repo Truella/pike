@@ -2,13 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/Card";
-
-function formatDate(value: string | null) {
-  if (!value) return "Not set";
-  return new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(
-    new Date(value),
-  );
-}
+import { HistoryList } from "@/components/study/HistoryList";
 
 export default async function StudyHistoryPage() {
   const supabase = await createClient();
@@ -21,6 +15,8 @@ export default async function StudyHistoryPage() {
   const { data: history, error } = await supabase
     .from("study_progress")
     .select(`
+      topic_id,
+      status,
       completed_at,
       notes,
       study_curriculum!inner(
@@ -32,6 +28,18 @@ export default async function StudyHistoryPage() {
     .eq("user_id", user.id)
     .eq("status", "done")
     .order("completed_at", { ascending: false });
+
+  const formattedHistory = (history || []).map((item) => ({
+    topic_id: item.topic_id,
+    status: item.status,
+    completed_at: item.completed_at,
+    notes: item.notes,
+    study_curriculum: item.study_curriculum as unknown as {
+      title: string;
+      section: string;
+      url: string;
+    },
+  }));
 
   return (
     <main className="min-h-screen bg-background px-6 py-12 text-ink">
@@ -69,44 +77,7 @@ export default async function StudyHistoryPage() {
         ) : null}
 
         {!error && history && history.length > 0 ? (
-          <div className="flex flex-col gap-6">
-            {history.map((record, index) => {
-              const topic = record.study_curriculum as unknown as {
-                title: string;
-                section: string;
-                url: string;
-              };
-              return (
-                <Card key={index} className="flex flex-col gap-3">
-                  <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border pb-2">
-                    <div>
-                      <span className="font-mono text-xs font-bold uppercase text-signal mr-2">
-                        {topic.section}
-                      </span>
-                      <a
-                        href={topic.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="pike-display font-bold text-lg text-ink underline underline-offset-4 hover:text-signal"
-                      >
-                        {topic.title}
-                      </a>
-                    </div>
-                    <span className="font-mono text-xs text-muted">
-                      Completed: {formatDate(record.completed_at)}
-                    </span>
-                  </div>
-                  {record.notes ? (
-                    <div className="bg-background rounded-token p-3 border border-border">
-                      <p className="text-sm whitespace-pre-wrap text-ink font-mono">{record.notes}</p>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-muted italic">No notes recorded for this topic.</p>
-                  )}
-                </Card>
-              );
-            })}
-          </div>
+          <HistoryList initialHistory={formattedHistory} />
         ) : null}
       </div>
     </main>
