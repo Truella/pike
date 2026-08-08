@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import type { Theme } from "@/lib/theme";
@@ -22,6 +22,11 @@ export function Navigation({ initialTheme }: { initialTheme: Theme }) {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    setIsSigningOut(false);
+    setMobileMenuOpen(false);
+  }, [pathname]);
 
   if (pathname === "/login") return null;
 

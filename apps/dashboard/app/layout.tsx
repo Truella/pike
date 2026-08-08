@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { isTheme, type Theme } from "@/lib/theme";
 import { Navigation } from "./navigation";
@@ -24,6 +25,12 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       .maybeSingle();
 
     if (isTheme(data?.theme)) theme = data.theme;
+  } else {
+    const cookieStore = await cookies();
+    const cookieTheme = cookieStore.get("pike-theme")?.value;
+    if (isTheme(cookieTheme)) {
+      theme = cookieTheme;
+    }
   }
 
   return (

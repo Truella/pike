@@ -26,6 +26,7 @@ export function ThemeSwitcher({ initialTheme }: { initialTheme: Theme }) {
     setTheme(nextTheme);
     setError(false);
     document.documentElement.dataset.theme = nextTheme;
+    document.cookie = `pike-theme=${nextTheme}; path=/; max-age=31536000; SameSite=Lax`;
 
     const response = await fetch("/api/preferences", {
       method: "PUT",
