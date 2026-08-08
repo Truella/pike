@@ -1,7 +1,7 @@
 import type { HTMLAttributes } from "react";
 
 type StatusTagProps = HTMLAttributes<HTMLSpanElement> & {
-  variant?: "live" | "urgent" | "neutral";
+  variant?: "live" | "urgent" | "neutral" | "done";
 };
 
 export function StatusTag({
@@ -13,6 +13,7 @@ export function StatusTag({
     live: "pike-status-live border-signal text-signal",
     urgent: "pike-status-urgent border-alert text-alert",
     neutral: "pike-status-neutral border-ink text-ink",
+    done: "pike-status-live border-signal text-signal",
   };
 
   return (

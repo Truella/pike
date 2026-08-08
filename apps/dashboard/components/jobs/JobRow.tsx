@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Dropdown, type DropdownOption } from "@/components/ui/Dropdown";
 import { StatusTag } from "@/components/ui/StatusTag";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/database.types";
@@ -15,6 +16,7 @@ const statuses = [
 ] as const;
 
 export type JobStatus = (typeof statuses)[number];
+
 export type Job = Pick<
   Database["public"]["Tables"]["jobs_listings"]["Row"],
   | "id"
@@ -27,7 +29,18 @@ export type Job = Pick<
   | "applied_at"
   | "follow_up_at"
   | "notes"
->;
+> & {
+  archived?: boolean;
+};
+
+const statusColors: Record<JobStatus, { bg: string; text: string; label: string }> = {
+  saved: { bg: "bg-surface", text: "text-ink", label: "Saved" },
+  applied: { bg: "bg-surface", text: "text-signal font-bold", label: "Applied" },
+  "follow-up": { bg: "bg-surface", text: "text-alert font-bold", label: "Follow-up" },
+  interview: { bg: "bg-signal text-background", text: "font-bold", label: "Interview" },
+  offer: { bg: "bg-signal text-background", text: "font-bold", label: "Offer" },
+  closed: { bg: "bg-surface", text: "text-muted", label: "Closed" },
+};
 
 function formatDate(value: string | null) {
   if (!value) return "Not set";
@@ -39,13 +52,23 @@ function formatDate(value: string | null) {
 export function JobRow({
   job,
   onStatusChange,
+  onArchiveToggle,
+  onDelete,
 }: {
   job: Job;
   onStatusChange: (id: string, status: JobStatus) => void;
+  onArchiveToggle: (id: string, archived: boolean) => void;
+  onDelete: (id: string) => void;
 }) {
   const [status, setStatus] = useState(job.status as JobStatus);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [followUpDate, setFollowUpDate] = useState<string>(
+    job.follow_up_at ? job.follow_up_at.slice(0, 10) : "",
+  );
+  const [menuOpen, setMenuOpen] = useState(false);
+
   const isOverdue =
     job.follow_up_at !== null && new Date(job.follow_up_at) < new Date();
 
@@ -80,13 +103,79 @@ export function JobRow({
       onStatusChange(job.id, previousStatus);
       setError(true);
     }
-
     setIsSaving(false);
   }
 
+  async function updateFollowUp(newDateStr: string) {
+    setFollowUpDate(newDateStr);
+    setShowDatePicker(false);
+    const isoDate = newDateStr ? new Date(newDateStr).toISOString() : null;
+
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user) {
+      await supabase
+        .from("jobs_listings")
+        .update({ follow_up_at: isoDate })
+        .eq("id", job.id)
+        .eq("user_id", user.id);
+    }
+  }
+
+  async function handleArchiveToggle() {
+    setMenuOpen(false);
+    const nextArchived = !job.archived;
+    onArchiveToggle(job.id, nextArchived);
+
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user) {
+      await supabase
+        .from("jobs_listings")
+        .update({ archived: nextArchived })
+        .eq("id", job.id)
+        .eq("user_id", user.id);
+    }
+  }
+
+  async function handleDelete() {
+    setMenuOpen(false);
+    if (!window.confirm("Are you sure you want to permanently delete this listing?")) {
+      return;
+    }
+    onDelete(job.id);
+
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user) {
+      await supabase
+        .from("jobs_listings")
+        .delete()
+        .eq("id", job.id)
+        .eq("user_id", user.id);
+    }
+  }
+
+  const dropdownOptions: DropdownOption<JobStatus>[] = statuses.map((s) => ({
+    value: s,
+    label: statusColors[s].label,
+  }));
+
+  const currentColor = statusColors[status] || statusColors.saved;
+
   return (
     <tr className="pike-border border-x-0 border-t-0 border-border last:border-b-0">
-      <td className="px-4 py-4 align-top">
+      {/* Sticky Role Column on Mobile */}
+      <td className="sticky left-0 z-10 bg-surface px-4 py-4 align-top shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] md:static md:shadow-none">
         <a
           className="pike-display font-bold text-ink underline-offset-4 hover:text-signal hover:underline"
           href={job.link}
@@ -104,32 +193,73 @@ export function JobRow({
         {formatDate(job.found_at)}
       </td>
       <td className="px-4 py-4 align-top font-mono text-xs">
-        {isOverdue ? (
-          <div className="flex flex-col items-start gap-2">
-            <StatusTag variant="urgent">Overdue</StatusTag>
-            <span className="text-alert">{formatDate(job.follow_up_at)}</span>
-          </div>
+        {showDatePicker ? (
+          <input
+            type="date"
+            value={followUpDate}
+            onChange={(e) => updateFollowUp(e.target.value)}
+            onBlur={() => setShowDatePicker(false)}
+            autoFocus
+            className="pike-border rounded-token border-border bg-background px-2 py-1 text-xs text-ink outline-none focus:border-signal"
+          />
         ) : (
-          <span className="text-muted">{formatDate(job.follow_up_at)}</span>
+          <button
+            type="button"
+            onClick={() => setShowDatePicker(true)}
+            className="text-left outline-none hover:underline"
+          >
+            {isOverdue ? (
+              <div className="flex flex-col items-start gap-1">
+                <StatusTag variant="urgent">Overdue</StatusTag>
+                <span className="text-alert">{formatDate(job.follow_up_at)}</span>
+              </div>
+            ) : (
+              <span className="text-muted">{formatDate(job.follow_up_at)}</span>
+            )}
+          </button>
         )}
       </td>
       <td className="px-4 py-4 align-top">
-        <select
-          aria-label={`Status for ${job.title}`}
-          className="pike-border rounded-token border-border bg-background px-3 py-2 font-mono text-xs uppercase text-ink outline-none focus:border-signal disabled:opacity-60"
-          disabled={isSaving}
-          onChange={(event) => updateStatus(event.target.value as JobStatus)}
+        <Dropdown
+          options={dropdownOptions}
           value={status}
-        >
-          {statuses.map((value) => (
-            <option key={value} value={value}>
-              {value}
-            </option>
-          ))}
-        </select>
+          onChange={updateStatus}
+          disabled={isSaving}
+          triggerClassName={`${currentColor.bg} ${currentColor.text}`}
+          ariaLabel={`Status for ${job.title}`}
+        />
         {error ? (
           <p className="mt-2 font-mono text-xs text-alert">Update failed</p>
         ) : null}
+      </td>
+      <td className="px-4 py-4 align-top text-right">
+        <div className="relative inline-block text-left">
+          <button
+            type="button"
+            onClick={() => setMenuOpen((prev) => !prev)}
+            className="font-mono text-xs font-bold text-muted hover:text-ink px-2 py-1"
+          >
+            ⋮
+          </button>
+          {menuOpen && (
+            <div className="pike-border absolute right-0 z-50 mt-1 min-w-[120px] rounded-token border-border bg-surface py-1 shadow-token">
+              <button
+                type="button"
+                onClick={handleArchiveToggle}
+                className="flex w-full items-center px-3 py-1.5 text-left font-mono text-xs text-ink hover:bg-background"
+              >
+                {job.archived ? "Unarchive" : "Archive"}
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="flex w-full items-center px-3 py-1.5 text-left font-mono text-xs text-alert hover:bg-background"
+              >
+                Delete
+              </button>
+            </div>
+          )}
+        </div>
       </td>
     </tr>
   );

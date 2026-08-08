@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { JobsTable } from "@/components/jobs/ExportButton";
+import { JobsTable } from "@/components/jobs/JobsTable";
 import { Card } from "@/components/ui/Card";
 import { createClient } from "@/lib/supabase/server";
 
@@ -14,7 +14,7 @@ export default async function JobsPage() {
   const { data: jobs, error } = await supabase
     .from("jobs_listings")
     .select(
-      "id, title, company, link, source, found_at, status, applied_at, follow_up_at, notes",
+      "id, title, company, link, source, found_at, status, applied_at, follow_up_at, notes, archived",
     )
     .eq("user_id", user.id)
     .order("found_at", { ascending: false });

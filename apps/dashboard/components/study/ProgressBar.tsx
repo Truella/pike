@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import type { Database } from "@/lib/supabase/database.types";
+import { StatusTag } from "@/components/ui/StatusTag";
 
 type CurriculumRow = Database["public"]["Tables"]["study_curriculum"]["Row"];
 type ProgressRow = Database["public"]["Tables"]["study_progress"]["Row"];
@@ -20,6 +22,15 @@ export function ProgressBar({ curriculum, progress }: ProgressBarProps) {
     "Resume",
     "Company questions",
   ];
+
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+
+  const toggleSection = (sectionName: string) => {
+    setExpandedSections((prev) => ({
+      ...prev,
+      [sectionName]: !prev[sectionName],
+    }));
+  };
 
   const getProgressStats = (topics: CurriculumRow[]) => {
     if (topics.length === 0) return { completed: 0, total: 0, percent: 0 };
@@ -56,27 +67,67 @@ export function ProgressBar({ curriculum, progress }: ProgressBarProps) {
         </div>
       </div>
 
-      {/* Section Progress */}
+      {/* Accordion Per-Section Progress */}
       <div className="pike-border rounded-token border-border bg-surface p-5 shadow-token">
         <h3 className="font-mono text-xs font-bold uppercase text-muted mb-4">Per-Section Progress</h3>
         <div className="flex flex-col gap-4">
           {sections.map((sectionName) => {
             const sectionTopics = curriculum.filter((t) => t.section === sectionName);
             const stats = getProgressStats(sectionTopics);
+            const isExpanded = !!expandedSections[sectionName];
+
             return (
-              <div key={sectionName} className="flex flex-col">
-                <div className="flex justify-between items-baseline mb-1">
-                  <span className="text-sm font-bold text-ink">{sectionName}</span>
+              <div key={sectionName} className="flex flex-col border-b border-border pb-3 last:border-b-0 last:pb-0">
+                <button
+                  type="button"
+                  onClick={() => toggleSection(sectionName)}
+                  className="flex justify-between items-center text-left py-1 outline-none hover:text-signal"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs text-muted">{isExpanded ? "▼" : "▶"}</span>
+                    <span className="text-sm font-bold text-ink">{sectionName}</span>
+                  </div>
                   <span className="font-mono text-xs text-muted">
                     {stats.completed}/{stats.total} ({stats.percent}%)
                   </span>
-                </div>
-                <div className="h-2 w-full bg-background rounded-token overflow-hidden border border-border p-[1px]">
+                </button>
+
+                <div className="h-2 w-full bg-background rounded-token overflow-hidden border border-border p-[1px] mt-1">
                   <div
                     className="h-full bg-signal rounded-token transition-all duration-500"
                     style={{ width: `${stats.percent}%` }}
                   />
                 </div>
+
+                {/* Expanded Topic List */}
+                {isExpanded && (
+                  <div className="mt-3 flex flex-col gap-2 pl-4 border-l border-border">
+                    {sectionTopics.map((topic) => {
+                      const p = progress.get(topic.id);
+                      const topicStatus = p?.status || "not_started";
+                      return (
+                        <div key={topic.id} className="flex items-center justify-between gap-2 text-xs">
+                          <span className="text-ink font-mono truncate">{topic.title}</span>
+                          <StatusTag
+                            variant={
+                              topicStatus === "done"
+                                ? "done"
+                                : topicStatus === "in_progress"
+                                ? "live"
+                                : "neutral"
+                            }
+                          >
+                            {topicStatus === "in_progress"
+                              ? "In Progress"
+                              : topicStatus === "done"
+                              ? "Done"
+                              : "Not Started"}
+                          </StatusTag>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}

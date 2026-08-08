@@ -3,6 +3,13 @@
 import { useState } from "react";
 import { themes, type Theme } from "@/lib/theme";
 
+const themeColors: Record<Theme, string> = {
+  brutalist: "#FF5500", // signal color for brutalist
+  warm: "#D97706",      // amber signal color for warm
+  pop: "#EC4899",       // pink signal color for pop
+  sticky: "#EAB308",    // yellow signal color for sticky
+};
+
 const labels: Record<Theme, string> = {
   brutalist: "Brutalist",
   warm: "Warm",
@@ -35,22 +42,22 @@ export function ThemeSwitcher({ initialTheme }: { initialTheme: Theme }) {
 
   return (
     <div className="flex items-center gap-2">
-      <label className="font-mono text-xs uppercase text-muted" htmlFor="theme">
-        Theme
-      </label>
-      <select
-        aria-invalid={error}
-        className="pike-border rounded-token border-border bg-surface px-2 py-1.5 font-mono text-xs font-bold uppercase text-ink outline-none focus:border-signal"
-        id="theme"
-        onChange={(event) => updateTheme(event.target.value as Theme)}
-        value={theme}
-      >
-        {themes.map((value) => (
-          <option key={value} value={value}>
-            {labels[value]}
-          </option>
+      <span className="font-mono text-xs uppercase text-muted">Theme</span>
+      <div className="flex items-center gap-2">
+        {themes.map((t) => (
+          <button
+            key={t}
+            type="button"
+            title={labels[t]}
+            aria-label={`Switch theme to ${labels[t]}`}
+            onClick={() => updateTheme(t)}
+            style={{ backgroundColor: themeColors[t] }}
+            className={`h-4 w-4 rounded-full transition-transform hover:scale-110 focus:outline-none ${
+              theme === t ? "ring-2 ring-ink ring-offset-2 ring-offset-surface" : "opacity-80 hover:opacity-100"
+            }`}
+          />
         ))}
-      </select>
+      </div>
       {error ? (
         <span className="font-mono text-xs text-alert">Save failed</span>
       ) : null}

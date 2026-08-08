@@ -98,8 +98,8 @@
   --color-accent-3: var(--pike-accent-3);
   --radius-token: var(--pike-radius);
   --shadow-token: var(--pike-shadow);
-  --font-sans: var(--font-inter), sans-serif;
-  --font-mono: var(--font-jetbrains-mono), monospace;
+  --font-sans: var(--font-inter, system-ui, -apple-system, sans-serif);
+  --font-mono: var(--font-jetbrains-mono, ui-monospace, monospace);
   --font-display: var(--pike-display-font);
 }
 

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/Card";
+import { Dropdown, type DropdownOption } from "@/components/ui/Dropdown";
 import { StatusTag } from "@/components/ui/StatusTag";
 import type { Database } from "@/lib/supabase/database.types";
 
@@ -14,15 +15,31 @@ interface TopicCardProps {
   onUpdate: (topicId: string, updates: Partial<ProgressRow>) => Promise<void>;
 }
 
+type TopicStatus = "not_started" | "in_progress" | "done";
+
+const statusOptions: DropdownOption<TopicStatus>[] = [
+  { value: "not_started", label: "Not Started" },
+  { value: "in_progress", label: "In Progress" },
+  { value: "done", label: "Done" },
+];
+
+const statusStyles: Record<TopicStatus, { triggerClass: string; variant: "neutral" | "live" | "done" }> = {
+  not_started: { triggerClass: "bg-surface text-ink", variant: "neutral" },
+  in_progress: { triggerClass: "bg-surface text-signal font-bold", variant: "live" },
+  done: { triggerClass: "bg-signal text-background font-bold", variant: "done" },
+};
+
 export function TopicCard({ currentTopic, progress, onUpdate }: TopicCardProps) {
-  const [status, setStatus] = useState<string>("not_started");
+  const [status, setStatus] = useState<TopicStatus>("not_started");
   const [notes, setNotes] = useState<string>("");
-  const [isSaving, setIsSaving] = useState(false);
+  const [isSavingStatus, setIsSavingStatus] = useState(false);
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (progress) {
-      setStatus(progress.status);
+      setStatus(progress.status as TopicStatus);
       setNotes(progress.notes || "");
     } else {
       setStatus("not_started");
@@ -53,10 +70,10 @@ export function TopicCard({ currentTopic, progress, onUpdate }: TopicCardProps) 
 
   const daysStuck = computeDaysStuck();
 
-  const handleStatusChange = async (newStatus: string) => {
+  const handleStatusChange = async (newStatus: TopicStatus) => {
     const prevStatus = status;
     setStatus(newStatus);
-    setIsSaving(true);
+    setIsSavingStatus(true);
     setError(null);
 
     const now = new Date().toISOString();
@@ -80,12 +97,9 @@ export function TopicCard({ currentTopic, progress, onUpdate }: TopicCardProps) 
       setStatus(prevStatus);
       setError("Failed to update status. Reverting changes.");
     } finally {
-      setIsSaving(false);
+      setIsSavingStatus(false);
     }
   };
-
-  const [isSavingNotes, setIsSavingNotes] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
 
   const handleSaveNotes = async () => {
     setIsSavingNotes(true);
@@ -103,6 +117,8 @@ export function TopicCard({ currentTopic, progress, onUpdate }: TopicCardProps) 
       setIsSavingNotes(false);
     }
   };
+
+  const currentStyle = statusStyles[status] || statusStyles.not_started;
 
   return (
     <Card className="flex flex-col gap-4">
@@ -124,12 +140,9 @@ export function TopicCard({ currentTopic, progress, onUpdate }: TopicCardProps) 
         </div>
         <div className="flex flex-col items-end gap-1.5">
           <div className="flex items-center gap-2">
-            {status === "in_progress" && (
-              <StatusTag variant="live">In Progress</StatusTag>
-            )}
-            {status === "not_started" && (
-              <StatusTag variant="neutral">Not Started</StatusTag>
-            )}
+            <StatusTag variant={currentStyle.variant}>
+              {status === "in_progress" ? "In Progress" : status === "done" ? "Done" : "Not Started"}
+            </StatusTag>
           </div>
           {daysStuck > 0 && status !== "done" && (
             <span className="font-mono text-xs font-bold text-alert">
@@ -140,20 +153,17 @@ export function TopicCard({ currentTopic, progress, onUpdate }: TopicCardProps) 
       </div>
 
       <div className="flex items-center gap-4 mt-2">
-        <label htmlFor="status-select" className="font-mono text-xs font-bold uppercase text-muted">
+        <label className="font-mono text-xs font-bold uppercase text-muted">
           Status:
         </label>
-        <select
-          id="status-select"
-          className="pike-border rounded-token border-border bg-background px-3 py-2 font-mono text-xs uppercase text-ink outline-none focus:border-signal disabled:opacity-60"
+        <Dropdown
+          options={statusOptions}
           value={status}
-          onChange={(e) => handleStatusChange(e.target.value)}
-          disabled={isSaving}
-        >
-          <option value="not_started">Not Started</option>
-          <option value="in_progress">In Progress</option>
-          <option value="done">Done</option>
-        </select>
+          onChange={handleStatusChange}
+          disabled={isSavingStatus}
+          triggerClassName={currentStyle.triggerClass}
+          ariaLabel="Status for current topic"
+        />
       </div>
 
       <div className="flex flex-col gap-2 mt-2">
@@ -167,13 +177,13 @@ export function TopicCard({ currentTopic, progress, onUpdate }: TopicCardProps) 
           placeholder="Write key takeaways, questions, or links to your practice solutions..."
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          disabled={isSaving || isSavingNotes}
+          disabled={isSavingStatus || isSavingNotes}
         />
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={handleSaveNotes}
-            disabled={isSaving || isSavingNotes}
+            disabled={isSavingStatus || isSavingNotes}
             className="pike-border rounded-token border-border bg-surface px-4 py-2 font-mono text-xs font-bold uppercase text-ink hover:bg-signal hover:text-background focus:outline-none disabled:opacity-50"
           >
             {isSavingNotes ? "Saving..." : "Save Notes"}
@@ -188,7 +198,7 @@ export function TopicCard({ currentTopic, progress, onUpdate }: TopicCardProps) 
         <p className="font-mono text-xs text-alert">{error}</p>
       )}
 
-      {isSaving && (
+      {isSavingStatus && (
         <p className="font-mono text-xs text-muted animate-pulse">Saving status change...</p>
       )}
     </Card>

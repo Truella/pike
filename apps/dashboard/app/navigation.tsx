@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
@@ -22,6 +21,7 @@ export function Navigation({ initialTheme }: { initialTheme: Theme }) {
   const router = useRouter();
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   if (pathname === "/login") return null;
 
@@ -42,27 +42,32 @@ export function Navigation({ initialTheme }: { initialTheme: Theme }) {
   }
 
   return (
-    <header className="pike-border border-x-0 border-t-0 border-border bg-surface text-ink">
-      <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+    <header className="bg-surface text-ink">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        {/* Left: Pike Logo */}
         <Link className="pike-display text-lg font-bold" href="/">
           Pike
         </Link>
-        <div className="flex flex-wrap items-center gap-4">
-          <nav aria-label="Primary navigation">
-            <ul className="flex flex-wrap gap-x-5 gap-y-2 font-mono text-xs uppercase text-muted">
-              {links.map((link) => (
-                <li key={link.href}>
-                  <Link
-                    aria-current={pathname === link.href ? "page" : undefined}
-                    className="transition-colors hover:text-ink aria-[current=page]:text-signal"
-                    href={link.href}
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
+
+        {/* Desktop Navigation (Centered) */}
+        <nav aria-label="Primary navigation" className="hidden md:block">
+          <ul className="flex items-center gap-x-6 font-mono text-xs uppercase text-muted">
+            {links.map((link) => (
+              <li key={link.href}>
+                <Link
+                  aria-current={pathname === link.href ? "page" : undefined}
+                  className="transition-colors hover:text-ink aria-[current=page]:text-signal"
+                  href={link.href}
+                >
+                  {link.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        {/* Right: Theme Switcher & Sign Out (Desktop) */}
+        <div className="hidden items-center gap-4 md:flex">
           <ThemeSwitcher initialTheme={initialTheme} />
           <Button
             aria-describedby={signOutError ? "sign-out-error" : undefined}
@@ -80,7 +85,53 @@ export function Navigation({ initialTheme }: { initialTheme: Theme }) {
             </span>
           ) : null}
         </div>
+
+        {/* Mobile Hamburger Button */}
+        <div className="flex items-center md:hidden">
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen((prev) => !prev)}
+            aria-label="Toggle navigation menu"
+            className="pike-border rounded-token border-border bg-surface p-2 font-mono text-xs text-ink focus:outline-none"
+          >
+            {mobileMenuOpen ? "✕" : "☰"}
+          </button>
+        </div>
       </div>
+
+      {/* Mobile Slide-out Drawer */}
+      {mobileMenuOpen && (
+        <div className="pike-border border-x-0 border-t-0 border-border bg-surface px-6 pb-6 pt-2 md:hidden">
+          <nav aria-label="Mobile navigation" className="mb-4">
+            <ul className="flex flex-col gap-3 font-mono text-xs uppercase text-muted">
+              {links.map((link) => (
+                <li key={link.href}>
+                  <Link
+                    aria-current={pathname === link.href ? "page" : undefined}
+                    className="block transition-colors hover:text-ink aria-[current=page]:text-signal"
+                    href={link.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+          <div className="flex flex-col gap-4 border-t border-border pt-4">
+            <ThemeSwitcher initialTheme={initialTheme} />
+            <Button
+              className="w-full px-3 py-1.5 text-xs"
+              disabled={isSigningOut}
+              onClick={signOut}
+              type="button"
+              variant="outline"
+            >
+              {isSigningOut ? "Signing out..." : "Sign out"}
+            </Button>
+          </div>
+        </div>
+      )}
     </header>
   );
 }

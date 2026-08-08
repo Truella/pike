@@ -12,6 +12,7 @@ export type Database = {
       jobs_listings: {
         Row: {
           applied_at: string | null;
+          archived: boolean;
           company: string;
           follow_up_at: string | null;
           found_at: string;
@@ -25,6 +26,7 @@ export type Database = {
         };
         Insert: {
           applied_at?: string | null;
+          archived?: boolean;
           company: string;
           follow_up_at?: string | null;
           found_at?: string;
@@ -38,6 +40,7 @@ export type Database = {
         };
         Update: {
           applied_at?: string | null;
+          archived?: boolean;
           company?: string;
           follow_up_at?: string | null;
           found_at?: string;
@@ -191,6 +194,7 @@ export type Database = {
       };
       hackathons_entries: {
         Row: {
+          archived: boolean;
           deadline: string | null;
           found_at: string;
           id: string;
@@ -203,6 +207,7 @@ export type Database = {
           user_id: string;
         };
         Insert: {
+          archived?: boolean;
           deadline?: string | null;
           found_at?: string;
           id?: string;
@@ -215,6 +220,7 @@ export type Database = {
           user_id: string;
         };
         Update: {
+          archived?: boolean;
           deadline?: string | null;
           found_at?: string;
           id?: string;
