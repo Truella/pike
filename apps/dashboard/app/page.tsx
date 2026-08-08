@@ -121,22 +121,30 @@ export default async function Home() {
           {moduleCards.map((module) => {
             const status = getModuleStatus(module.lastRunAt);
             return (
-              <Card key={module.id} className="flex flex-col justify-between">
-                <div>
-                  <div className="flex items-start justify-between gap-3">
-                    <h2 className="pike-display text-lg font-bold">{module.name}</h2>
-                    <StatusTag variant={status.variant}>{status.label}</StatusTag>
+              <Link
+                key={module.id}
+                href={`/${module.id}`}
+                className="group transition-transform hover:-translate-y-1 block"
+              >
+                <Card className="flex h-full flex-col justify-between transition-colors group-hover:border-signal">
+                  <div>
+                    <div className="flex items-start justify-between gap-3">
+                      <h2 className="pike-display text-lg font-bold group-hover:text-signal">
+                        {module.name}
+                      </h2>
+                      <StatusTag variant={status.variant}>{status.label}</StatusTag>
+                    </div>
+                    <p className="mt-4 font-mono text-xs leading-5 text-muted">
+                      {module.detail}
+                    </p>
                   </div>
-                  <p className="mt-4 font-mono text-xs leading-5 text-muted">
-                    {module.detail}
-                  </p>
-                </div>
-                <div className="mt-6 border-t border-border pt-3">
-                  <span className="font-mono text-xs font-bold text-signal">
-                    {module.statLabel}
-                  </span>
-                </div>
-              </Card>
+                  <div className="mt-6 border-t border-border pt-3">
+                    <span className="font-mono text-xs font-bold text-signal">
+                      {module.statLabel}
+                    </span>
+                  </div>
+                </Card>
+              </Link>
             );
           })}
         </section>
