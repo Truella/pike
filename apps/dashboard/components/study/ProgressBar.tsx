@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import type { Database } from "@/lib/supabase/database.types";
 import { StatusTag } from "@/components/ui/StatusTag";
 
@@ -107,7 +108,18 @@ export function ProgressBar({ curriculum, progress }: ProgressBarProps) {
                       const topicStatus = p?.status || "not_started";
                       return (
                         <div key={topic.id} className="flex items-center justify-between gap-2 text-xs">
-                          <span className="text-ink font-mono truncate">{topic.title}</span>
+                          {topic.url ? (
+                            <Link
+                              href={topic.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-ink font-mono truncate hover:text-signal hover:underline underline-offset-2 transition-colors"
+                            >
+                              {topic.title}
+                            </Link>
+                          ) : (
+                            <span className="text-ink font-mono truncate">{topic.title}</span>
+                          )}
                           <StatusTag
                             variant={
                               topicStatus === "done"

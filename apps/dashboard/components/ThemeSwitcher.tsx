@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { themes, type Theme } from "@/lib/theme";
+import { useState, useEffect } from "react";
+import { themes, isTheme, type Theme } from "@/lib/theme";
 
 const themeColors: Record<Theme, string> = {
   brutalist: "#FF5500", // signal color for brutalist
@@ -20,6 +20,16 @@ const labels: Record<Theme, string> = {
 export function ThemeSwitcher({ initialTheme }: { initialTheme: Theme }) {
   const [theme, setTheme] = useState(initialTheme);
   const [error, setError] = useState(false);
+
+  // Sync with the actual DOM attribute on mount — initialTheme can be stale
+  // after client-side navigation since the layout is not remounted.
+  useEffect(() => {
+    const domTheme = document.documentElement.dataset.theme;
+    if (isTheme(domTheme) && domTheme !== theme) {
+      setTheme(domTheme);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function updateTheme(nextTheme: Theme) {
     const previousTheme = theme;
