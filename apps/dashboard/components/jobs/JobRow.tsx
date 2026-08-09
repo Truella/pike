@@ -68,13 +68,16 @@ export function useJobRowState({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  // followUpDate: YYYY-MM-DD string used by the <input type="date"> picker
   const [followUpDate, setFollowUpDate] = useState<string>(
     job.follow_up_at ? job.follow_up_at.slice(0, 10) : "",
   );
+  // followUpAt: full ISO string used for the display label — stays in sync after saves
+  const [followUpAt, setFollowUpAt] = useState<string | null>(job.follow_up_at);
   const [menuOpen, setMenuOpen] = useState(false);
 
   const isOverdue =
-    job.follow_up_at !== null && new Date(job.follow_up_at) < new Date();
+    followUpAt !== null && new Date(followUpAt) < new Date();
 
   async function updateStatus(nextStatus: JobStatus) {
     const previousStatus = status;
@@ -111,21 +114,37 @@ export function useJobRowState({
   }
 
   async function updateFollowUp(newDateStr: string) {
+    const prevFollowUpDate = followUpDate;
+    const prevFollowUpAt = followUpAt;
+
+    // Optimistic update — both the picker input and the display label
     setFollowUpDate(newDateStr);
-    setShowDatePicker(false);
     const isoDate = newDateStr ? new Date(newDateStr).toISOString() : null;
+    setFollowUpAt(isoDate);
+    setShowDatePicker(false);
 
     const supabase = createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (user) {
-      await supabase
-        .from("jobs_listings")
-        .update({ follow_up_at: isoDate })
-        .eq("id", job.id)
-        .eq("user_id", user.id);
+    if (!user) {
+      // Roll back if not authenticated
+      setFollowUpDate(prevFollowUpDate);
+      setFollowUpAt(prevFollowUpAt);
+      return;
+    }
+
+    const { error: updateError } = await supabase
+      .from("jobs_listings")
+      .update({ follow_up_at: isoDate })
+      .eq("id", job.id)
+      .eq("user_id", user.id);
+
+    if (updateError) {
+      // Roll back on failure
+      setFollowUpDate(prevFollowUpDate);
+      setFollowUpAt(prevFollowUpAt);
     }
   }
 
@@ -183,6 +202,7 @@ export function useJobRowState({
     showDatePicker,
     setShowDatePicker,
     followUpDate,
+    followUpAt,
     menuOpen,
     setMenuOpen,
     isOverdue,
@@ -216,6 +236,7 @@ export function JobCardMobile({
     showDatePicker,
     setShowDatePicker,
     followUpDate,
+    followUpAt,
     menuOpen,
     setMenuOpen,
     isOverdue,
@@ -301,9 +322,9 @@ export function JobCardMobile({
               className="text-left outline-none hover:underline"
             >
               {isOverdue ? (
-                <span className="text-alert font-bold">{formatJobDate(job.follow_up_at)} (Overdue)</span>
+                <span className="text-alert font-bold">{formatJobDate(followUpAt)} (Overdue)</span>
               ) : (
-                <span>{formatJobDate(job.follow_up_at)}</span>
+                <span>{formatJobDate(followUpAt)}</span>
               )}
             </button>
           )}
@@ -337,6 +358,7 @@ export function JobRow({
     showDatePicker,
     setShowDatePicker,
     followUpDate,
+    followUpAt,
     menuOpen,
     setMenuOpen,
     isOverdue,
@@ -386,10 +408,10 @@ export function JobRow({
             {isOverdue ? (
               <div className="flex flex-col items-start gap-1">
                 <StatusTag variant="urgent">Overdue</StatusTag>
-                <span className="text-alert">{formatJobDate(job.follow_up_at)}</span>
+                <span className="text-alert">{formatJobDate(followUpAt)}</span>
               </div>
             ) : (
-              <span className="text-muted">{formatJobDate(job.follow_up_at)}</span>
+              <span className="text-muted">{formatJobDate(followUpAt)}</span>
             )}
           </button>
         )}
