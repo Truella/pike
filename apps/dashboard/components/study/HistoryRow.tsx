@@ -27,10 +27,12 @@ export function HistoryRow({
   item,
   isEditing,
   onToggleEdit,
+  onSave,
 }: {
   item: HistoryItem;
   isEditing: boolean;
   onToggleEdit: () => void;
+  onSave: (patch: Partial<Pick<HistoryItem, "status" | "notes" | "completed_at">>) => void;
 }) {
   const topic = item.study_curriculum;
   const [status, setStatus] = useState<string>(item.status);
@@ -76,7 +78,13 @@ export function HistoryRow({
     if (updateError) {
       setError("Failed to save changes");
     } else {
-      onToggleEdit();
+      // Tell the parent what changed so it can update its list state immediately
+      const patch: Partial<Pick<HistoryItem, "status" | "notes" | "completed_at">> = {
+        status,
+        notes: notes || null,
+        completed_at: status !== "done" ? null : item.completed_at,
+      };
+      onSave(patch);
     }
     setIsSaving(false);
   }
