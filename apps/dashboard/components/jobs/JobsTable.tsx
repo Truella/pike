@@ -6,7 +6,7 @@ import { JobRow, JobCardMobile, type Job, type JobStatus } from "./JobRow";
 import { JobsCardGrid } from "./JobsCardGrid";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { createClient } from "@/lib/supabase/client";
-import { isTheme } from "@/lib/theme";
+import { useTheme } from "@/lib/theme-context";
 
 type SortField = "found_at" | "company" | "status";
 type SortOrder = "asc" | "desc";
@@ -24,12 +24,8 @@ export function JobsTable({ initialJobs }: { initialJobs: Job[] }) {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const pageSize = 25;
 
-  // Detect active theme once on mount — drives table vs card-grid switch.
-  const [isSticky, setIsSticky] = useState(false);
-  useEffect(() => {
-    const theme = document.documentElement.dataset.theme;
-    setIsSticky(theme === "sticky");
-  }, []);
+  const { theme } = useTheme();
+  const isSticky = theme === "sticky";
 
   // Supabase Realtime subscription for jobs_listings
   useEffect(() => {

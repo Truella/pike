@@ -6,6 +6,7 @@ import { Dropdown } from "@/components/ui/Dropdown";
 import { HackathonRow, HackathonCardMobile, type Hackathon, type HackathonStatus } from "./HackathonRow";
 import { HackathonsCardGrid } from "./HackathonsCardGrid";
 import { createClient } from "@/lib/supabase/client";
+import { useTheme } from "@/lib/theme-context";
 
 type SortField = "deadline" | "prize" | "status";
 type SortOrder = "asc" | "desc";
@@ -26,12 +27,8 @@ export function HackathonsTable({
   const [currentPage, setCurrentPage] = useState<number>(1);
   const pageSize = 25;
 
-  // Detect active theme once on mount — drives table vs card-grid switch.
-  const [isSticky, setIsSticky] = useState(false);
-  useEffect(() => {
-    const theme = document.documentElement.dataset.theme;
-    setIsSticky(theme === "sticky");
-  }, []);
+  const { theme } = useTheme();
+  const isSticky = theme === "sticky";
 
   // Supabase Realtime subscription for hackathons_entries
   useEffect(() => {

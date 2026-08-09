@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { isTheme, type Theme } from "@/lib/theme";
 import { Navigation } from "./navigation";
+import { ThemeProvider } from "@/lib/theme-context";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -40,8 +41,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       className="h-full antialiased"
     >
       <body className="flex min-h-full flex-col">
-        <Navigation initialTheme={theme} />
-        {children}
+        <ThemeProvider initialTheme={theme}>
+          <Navigation initialTheme={theme} />
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

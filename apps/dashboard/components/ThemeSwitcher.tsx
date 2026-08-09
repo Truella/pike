@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { themes, isTheme, type Theme } from "@/lib/theme";
 
+import { useTheme } from "@/lib/theme-context";
+
 const themeColors: Record<Theme, string> = {
   brutalist: "#FF5500", // signal color for brutalist
   warm: "#D97706",      // amber signal color for warm
@@ -18,24 +20,13 @@ const labels: Record<Theme, string> = {
 };
 
 export function ThemeSwitcher({ initialTheme }: { initialTheme: Theme }) {
-  const [theme, setTheme] = useState(initialTheme);
+  const { theme, setTheme } = useTheme();
   const [error, setError] = useState(false);
-
-  // Sync with the actual DOM attribute on mount — initialTheme can be stale
-  // after client-side navigation since the layout is not remounted.
-  useEffect(() => {
-    const domTheme = document.documentElement.dataset.theme;
-    if (isTheme(domTheme) && domTheme !== theme) {
-      setTheme(domTheme);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   async function updateTheme(nextTheme: Theme) {
     const previousTheme = theme;
     setTheme(nextTheme);
     setError(false);
-    document.documentElement.dataset.theme = nextTheme;
     document.cookie = `pike-theme=${nextTheme}; path=/; max-age=31536000; SameSite=Lax`;
 
     const response = await fetch("/api/preferences", {
@@ -47,7 +38,6 @@ export function ThemeSwitcher({ initialTheme }: { initialTheme: Theme }) {
     if (!response.ok) {
       setTheme(previousTheme);
       setError(true);
-      document.documentElement.dataset.theme = previousTheme;
     }
   }
 
