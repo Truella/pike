@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { Dropdown } from "@/components/ui/Dropdown";
-import { HackathonRow, type Hackathon, type HackathonStatus } from "./HackathonRow";
+import { HackathonRow, HackathonCardMobile, type Hackathon, type HackathonStatus } from "./HackathonRow";
 import { createClient } from "@/lib/supabase/client";
 
 type SortField = "deadline" | "prize" | "status";
@@ -218,7 +218,7 @@ export function HackathonsTable({
           </div>
         ) : (
           paginatedHackathons.map((h) => (
-            <HackathonRow
+            <HackathonCardMobile
               hackathon={h}
               key={h.id}
               onStatusChange={updateVisibleStatus}

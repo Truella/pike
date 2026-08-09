@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { ExportButton } from "./ExportButton";
-import { JobRow, type Job, type JobStatus } from "./JobRow";
+import { JobRow, JobCardMobile, type Job, type JobStatus } from "./JobRow";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { createClient } from "@/lib/supabase/client";
 
@@ -202,7 +202,7 @@ export function JobsTable({ initialJobs }: { initialJobs: Job[] }) {
           </div>
         ) : (
           paginatedJobs.map((job) => (
-            <JobRow
+            <JobCardMobile
               job={job}
               key={job.id}
               onStatusChange={updateVisibleStatus}
