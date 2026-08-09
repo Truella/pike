@@ -10,10 +10,11 @@ type ContentRow = Database["public"]["Tables"]["pike_content"]["Row"];
 
 interface DraftCardProps {
   post: ContentRow;
+  index?: number;
   onStatusChange: (id: string, status: string, scheduledAt?: string) => void;
 }
 
-export function DraftCard({ post, onStatusChange }: DraftCardProps) {
+export function DraftCard({ post, index, onStatusChange }: DraftCardProps) {
   const [draftText, setDraftText] = useState(post.draft_text);
   const [scheduledAt, setScheduledAt] = useState(
     post.scheduled_at ? new Date(post.scheduled_at).toISOString().slice(0, 16) : ""
@@ -69,7 +70,7 @@ export function DraftCard({ post, onStatusChange }: DraftCardProps) {
     "text-muted";
 
   return (
-    <Card className="flex flex-col gap-4">
+    <Card index={index} className="flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <span className="font-mono text-xs font-bold uppercase text-signal">

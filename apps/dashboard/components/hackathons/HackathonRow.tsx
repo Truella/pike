@@ -164,11 +164,13 @@ function useHackathonRowState({
 // ---------------------------------------------------------------------------
 export function HackathonCardMobile({
   hackathon,
+  index,
   onStatusChange,
   onArchiveToggle,
   onDelete,
 }: {
   hackathon: Hackathon;
+  index?: number;
   onStatusChange: (id: string, status: HackathonStatus) => void;
   onArchiveToggle: (id: string, archived: boolean) => void;
   onDelete: (id: string) => void;
@@ -188,7 +190,7 @@ export function HackathonCardMobile({
   } = useHackathonRowState({ hackathon, onStatusChange, onArchiveToggle, onDelete });
 
   return (
-    <Card className="flex flex-col gap-3">
+    <Card index={index} className="flex flex-col gap-3">
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1">
           <a

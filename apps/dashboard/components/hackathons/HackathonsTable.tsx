@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { HackathonRow, HackathonCardMobile, type Hackathon, type HackathonStatus } from "./HackathonRow";
+import { HackathonsCardGrid } from "./HackathonsCardGrid";
 import { createClient } from "@/lib/supabase/client";
 
 type SortField = "deadline" | "prize" | "status";
@@ -24,6 +25,13 @@ export function HackathonsTable({
 
   const [currentPage, setCurrentPage] = useState<number>(1);
   const pageSize = 25;
+
+  // Detect active theme once on mount — drives table vs card-grid switch.
+  const [isSticky, setIsSticky] = useState(false);
+  useEffect(() => {
+    const theme = document.documentElement.dataset.theme;
+    setIsSticky(theme === "sticky");
+  }, []);
 
   // Supabase Realtime subscription for hackathons_entries
   useEffect(() => {
@@ -210,73 +218,88 @@ export function HackathonsTable({
         </Button>
       </div>
 
-      {/* Mobile Stacked Card View */}
-      <div className="mt-4 flex flex-col gap-4 md:hidden">
-        {paginatedHackathons.length === 0 ? (
-          <div className="pike-border rounded-token border-border bg-surface p-6 text-center font-mono text-xs text-muted">
-            No hackathons found matching criteria.
-          </div>
-        ) : (
-          paginatedHackathons.map((h) => (
-            <HackathonCardMobile
-              hackathon={h}
-              key={h.id}
-              onStatusChange={updateVisibleStatus}
-              onArchiveToggle={handleArchiveToggle}
-              onDelete={handleDelete}
-            />
-          ))
-        )}
-      </div>
-
-      {/* Desktop Table Container */}
-      <div className="pike-border mt-4 hidden overflow-x-auto rounded-token border-border bg-surface shadow-token md:block">
-        <table className="w-full min-w-5xl border-collapse text-left">
-          <thead>
-            <tr className="pike-border border-x-0 border-t-0 border-border font-mono text-xs uppercase text-muted">
-              <th className="px-4 py-3 font-bold">Hackathon</th>
-              <th
-                className="cursor-pointer px-4 py-3 font-bold hover:text-ink"
-                onClick={() => toggleSort("prize")}
-              >
-                Prize Pool {sortField === "prize" ? (sortOrder === "asc" ? "▲" : "▼") : ""}
-              </th>
-              <th
-                className="cursor-pointer px-4 py-3 font-bold hover:text-ink"
-                onClick={() => toggleSort("deadline")}
-              >
-                Deadline {sortField === "deadline" ? (sortOrder === "asc" ? "▲" : "▼") : ""}
-              </th>
-              <th
-                className="cursor-pointer px-4 py-3 font-bold hover:text-ink"
-                onClick={() => toggleSort("status")}
-              >
-                Status {sortField === "status" ? (sortOrder === "asc" ? "▲" : "▼") : ""}
-              </th>
-              <th className="px-4 py-3 text-right font-bold">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+      {/* Presentation layer: card grid under Sticky, table everywhere else */}
+      {isSticky ? (
+        <div className="mt-6">
+          <HackathonsCardGrid
+            hackathons={paginatedHackathons}
+            onStatusChange={updateVisibleStatus}
+            onArchiveToggle={handleArchiveToggle}
+            onDelete={handleDelete}
+          />
+        </div>
+      ) : (
+        <>
+          {/* Mobile Stacked Card View */}
+          <div className="mt-4 flex flex-col gap-4 md:hidden">
             {paginatedHackathons.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-muted font-mono text-xs">
-                  No hackathons found matching criteria.
-                </td>
-              </tr>
+              <div className="pike-border rounded-token border-border bg-surface p-6 text-center font-mono text-xs text-muted">
+                No hackathons found matching criteria.
+              </div>
             ) : (
-              paginatedHackathons.map((h) => (
-                <HackathonRow
+              paginatedHackathons.map((h, i) => (
+                <HackathonCardMobile
                   hackathon={h}
                   key={h.id}
+                  index={i}
                   onStatusChange={updateVisibleStatus}
                   onArchiveToggle={handleArchiveToggle}
                   onDelete={handleDelete}
                 />
               ))
             )}
-          </tbody>
-        </table>
-      </div>
+          </div>
+
+          {/* Desktop Table Container */}
+          <div className="pike-border mt-4 hidden overflow-x-auto rounded-token border-border bg-surface shadow-token md:block">
+            <table className="w-full min-w-5xl border-collapse text-left">
+              <thead>
+                <tr className="pike-border border-x-0 border-t-0 border-border font-mono text-xs uppercase text-muted">
+                  <th className="px-4 py-3 font-bold">Hackathon</th>
+                  <th
+                    className="cursor-pointer px-4 py-3 font-bold hover:text-ink"
+                    onClick={() => toggleSort("prize")}
+                  >
+                    Prize Pool {sortField === "prize" ? (sortOrder === "asc" ? "▲" : "▼") : ""}
+                  </th>
+                  <th
+                    className="cursor-pointer px-4 py-3 font-bold hover:text-ink"
+                    onClick={() => toggleSort("deadline")}
+                  >
+                    Deadline {sortField === "deadline" ? (sortOrder === "asc" ? "▲" : "▼") : ""}
+                  </th>
+                  <th
+                    className="cursor-pointer px-4 py-3 font-bold hover:text-ink"
+                    onClick={() => toggleSort("status")}
+                  >
+                    Status {sortField === "status" ? (sortOrder === "asc" ? "▲" : "▼") : ""}
+                  </th>
+                  <th className="px-4 py-3 text-right font-bold">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedHackathons.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-muted font-mono text-xs">
+                      No hackathons found matching criteria.
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedHackathons.map((h) => (
+                    <HackathonRow
+                      hackathon={h}
+                      key={h.id}
+                      onStatusChange={updateVisibleStatus}
+                      onArchiveToggle={handleArchiveToggle}
+                      onDelete={handleDelete}
+                    />
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
 
       {/* Pagination Controls */}
       {totalPages > 1 && (
@@ -307,3 +330,4 @@ export function HackathonsTable({
     </>
   );
 }
+

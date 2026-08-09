@@ -75,6 +75,7 @@
   --pike-accent-1: #fff3b0;
   --pike-accent-2: #ffd6e8;
   --pike-accent-3: #d6eaff;
+  --pike-accent-4: #ffe0a0;
   --pike-radius: 2px;
   --pike-border-width: 1px;
   --pike-shadow: 3px 6px 14px rgba(43, 36, 28, 0.16);
@@ -144,29 +145,51 @@ body {
   background: var(--pike-accent-1);
 }
 
+/* Sticky: status tags derive colour from variant, not a fixed accent */
 [data-theme="sticky"] .pike-status-tag {
-  border: 0;
-  background: var(--pike-accent-3);
+  border: 1px solid;
+}
+[data-theme="sticky"] .pike-status-live {
+  background: color-mix(in srgb, var(--pike-signal) 15%, transparent);
+  border-color: var(--pike-signal);
+  color: var(--pike-signal);
+}
+[data-theme="sticky"] .pike-status-urgent {
+  background: color-mix(in srgb, var(--pike-alert) 15%, transparent);
+  border-color: var(--pike-alert);
+  color: var(--pike-alert);
+}
+[data-theme="sticky"] .pike-status-neutral {
+  background: color-mix(in srgb, var(--pike-muted) 15%, transparent);
+  border-color: var(--pike-muted);
   color: var(--pike-ink);
 }
 
+/* Sticky: cards — base shape */
 [data-theme="sticky"] .pike-card {
   position: relative;
   border: 0;
 }
 
-[data-theme="sticky"] .pike-card:nth-child(odd),
-[data-theme="sticky"] .pike-card-list > :nth-child(odd) .pike-card {
+/* Sticky: 4-accent cycling driven by data-card-index set in JS */
+[data-theme="sticky"] .pike-card[data-card-index="0"] {
   background: var(--pike-accent-1);
   rotate: -2deg;
 }
-
-[data-theme="sticky"] .pike-card:nth-child(even),
-[data-theme="sticky"] .pike-card-list > :nth-child(even) .pike-card {
+[data-theme="sticky"] .pike-card[data-card-index="1"] {
   background: var(--pike-accent-2);
   rotate: 1.5deg;
 }
+[data-theme="sticky"] .pike-card[data-card-index="2"] {
+  background: var(--pike-accent-3);
+  rotate: -1deg;
+}
+[data-theme="sticky"] .pike-card[data-card-index="3"] {
+  background: var(--pike-accent-4);
+  rotate: 2deg;
+}
 
+/* Folded corner on all sticky cards */
 [data-theme="sticky"] .pike-card::after {
   position: absolute;
   top: 0;

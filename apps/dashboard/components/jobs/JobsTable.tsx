@@ -3,8 +3,10 @@
 import { useState, useEffect } from "react";
 import { ExportButton } from "./ExportButton";
 import { JobRow, JobCardMobile, type Job, type JobStatus } from "./JobRow";
+import { JobsCardGrid } from "./JobsCardGrid";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { createClient } from "@/lib/supabase/client";
+import { isTheme } from "@/lib/theme";
 
 type SortField = "found_at" | "company" | "status";
 type SortOrder = "asc" | "desc";
@@ -21,6 +23,13 @@ export function JobsTable({ initialJobs }: { initialJobs: Job[] }) {
 
   const [currentPage, setCurrentPage] = useState<number>(1);
   const pageSize = 25;
+
+  // Detect active theme once on mount — drives table vs card-grid switch.
+  const [isSticky, setIsSticky] = useState(false);
+  useEffect(() => {
+    const theme = document.documentElement.dataset.theme;
+    setIsSticky(theme === "sticky");
+  }, []);
 
   // Supabase Realtime subscription for jobs_listings
   useEffect(() => {
@@ -194,69 +203,84 @@ export function JobsTable({ initialJobs }: { initialJobs: Job[] }) {
         <ExportButton jobs={sortedJobs} />
       </div>
 
-      {/* Mobile Stacked Card View */}
-      <div className="mt-4 flex flex-col gap-4 md:hidden">
-        {paginatedJobs.length === 0 ? (
-          <div className="pike-border rounded-token border-border bg-surface p-6 text-center font-mono text-xs text-muted">
-            No listings found matching criteria.
-          </div>
-        ) : (
-          paginatedJobs.map((job) => (
-            <JobCardMobile
-              job={job}
-              key={job.id}
-              onStatusChange={updateVisibleStatus}
-              onArchiveToggle={handleArchiveToggle}
-              onDelete={handleDelete}
-            />
-          ))
-        )}
-      </div>
-
-      {/* Desktop Table Container */}
-      <div className="pike-border mt-4 hidden overflow-x-auto rounded-token border-border bg-surface shadow-token md:block">
-        <table className="w-full min-w-5xl border-collapse text-left">
-          <thead>
-            <tr className="pike-border border-x-0 border-t-0 border-border font-mono text-xs uppercase text-muted">
-              <th className="px-4 py-3 font-bold">Role</th>
-              <th className="px-4 py-3 font-bold">Source</th>
-              <th
-                className="cursor-pointer px-4 py-3 font-bold hover:text-ink"
-                onClick={() => toggleSort("found_at")}
-              >
-                Found {sortField === "found_at" ? (sortOrder === "asc" ? "▲" : "▼") : ""}
-              </th>
-              <th className="px-4 py-3 font-bold">Follow-up</th>
-              <th
-                className="cursor-pointer px-4 py-3 font-bold hover:text-ink"
-                onClick={() => toggleSort("status")}
-              >
-                Status {sortField === "status" ? (sortOrder === "asc" ? "▲" : "▼") : ""}
-              </th>
-              <th className="px-4 py-3 text-right font-bold">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+      {/* Presentation layer: card grid under Sticky, table everywhere else */}
+      {isSticky ? (
+        <div className="mt-6">
+          <JobsCardGrid
+            jobs={paginatedJobs}
+            onStatusChange={updateVisibleStatus}
+            onArchiveToggle={handleArchiveToggle}
+            onDelete={handleDelete}
+          />
+        </div>
+      ) : (
+        <>
+          {/* Mobile Stacked Card View */}
+          <div className="mt-4 flex flex-col gap-4 md:hidden">
             {paginatedJobs.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-muted font-mono text-xs">
-                  No listings found matching criteria.
-                </td>
-              </tr>
+              <div className="pike-border rounded-token border-border bg-surface p-6 text-center font-mono text-xs text-muted">
+                No listings found matching criteria.
+              </div>
             ) : (
-              paginatedJobs.map((job) => (
-                <JobRow
+              paginatedJobs.map((job, i) => (
+                <JobCardMobile
                   job={job}
                   key={job.id}
+                  index={i}
                   onStatusChange={updateVisibleStatus}
                   onArchiveToggle={handleArchiveToggle}
                   onDelete={handleDelete}
                 />
               ))
             )}
-          </tbody>
-        </table>
-      </div>
+          </div>
+
+          {/* Desktop Table Container */}
+          <div className="pike-border mt-4 hidden overflow-x-auto rounded-token border-border bg-surface shadow-token md:block">
+            <table className="w-full min-w-5xl border-collapse text-left">
+              <thead>
+                <tr className="pike-border border-x-0 border-t-0 border-border font-mono text-xs uppercase text-muted">
+                  <th className="px-4 py-3 font-bold">Role</th>
+                  <th className="px-4 py-3 font-bold">Source</th>
+                  <th
+                    className="cursor-pointer px-4 py-3 font-bold hover:text-ink"
+                    onClick={() => toggleSort("found_at")}
+                  >
+                    Found {sortField === "found_at" ? (sortOrder === "asc" ? "▲" : "▼") : ""}
+                  </th>
+                  <th className="px-4 py-3 font-bold">Follow-up</th>
+                  <th
+                    className="cursor-pointer px-4 py-3 font-bold hover:text-ink"
+                    onClick={() => toggleSort("status")}
+                  >
+                    Status {sortField === "status" ? (sortOrder === "asc" ? "▲" : "▼") : ""}
+                  </th>
+                  <th className="px-4 py-3 text-right font-bold">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedJobs.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-8 text-center text-muted font-mono text-xs">
+                      No listings found matching criteria.
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedJobs.map((job) => (
+                    <JobRow
+                      job={job}
+                      key={job.id}
+                      onStatusChange={updateVisibleStatus}
+                      onArchiveToggle={handleArchiveToggle}
+                      onDelete={handleDelete}
+                    />
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
 
       {/* Pagination Controls */}
       {totalPages > 1 && (

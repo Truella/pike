@@ -118,7 +118,7 @@ export default async function Home() {
         </p>
 
         <section className="mt-14 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-          {moduleCards.map((module) => {
+          {moduleCards.map((module, i) => {
             const status = getModuleStatus(module.lastRunAt);
             return (
               <Link
@@ -126,7 +126,7 @@ export default async function Home() {
                 href={`/${module.id}`}
                 className="group transition-transform hover:-translate-y-1 block"
               >
-                <Card className="flex h-full flex-col justify-between transition-colors group-hover:border-signal">
+                <Card index={i} className="flex h-full flex-col justify-between transition-colors group-hover:border-signal">
                   <div>
                     <div className="flex items-start justify-between gap-3">
                       <h2 className="pike-display text-lg font-bold group-hover:text-signal">

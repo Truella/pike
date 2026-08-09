@@ -50,10 +50,10 @@ export default async function SettingsPage() {
         ) : null}
 
         {!error && modules.length > 0 ? (
-          <ul className="pike-card-list mt-8 grid gap-4">
-            {modules.map((module) => (
+          <ul className="pike-card-list mt-8 grid gap-6 sm:grid-cols-2 md:grid-cols-3">
+            {modules.map((module, i) => (
               <li key={module.id}>
-                <Card>
+                <Card index={i}>
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <h2 className="pike-display text-lg font-bold">{module.name}</h2>
                   <StatusTag variant="live">

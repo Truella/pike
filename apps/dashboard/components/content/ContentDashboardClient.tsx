@@ -70,8 +70,8 @@ export function ContentDashboardClient({
                 Needs Review ({needsReview.length})
               </h2>
               <div className="flex flex-col gap-4">
-                {needsReview.map((post) => (
-                  <DraftCard key={post.id} post={post} onStatusChange={handleStatusChange} />
+                {needsReview.map((post, i) => (
+                  <DraftCard key={post.id} post={post} index={i} onStatusChange={handleStatusChange} />
                 ))}
               </div>
             </section>
@@ -90,8 +90,8 @@ export function ContentDashboardClient({
                 Approved / Scheduled ({approved.length})
               </h2>
               <div className="flex flex-col gap-4">
-                {approved.map((post) => (
-                  <DraftCard key={post.id} post={post} onStatusChange={handleStatusChange} />
+                {approved.map((post, i) => (
+                  <DraftCard key={post.id} post={post} index={i + needsReview.length} onStatusChange={handleStatusChange} />
                 ))}
               </div>
             </section>

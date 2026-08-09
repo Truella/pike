@@ -22,10 +22,11 @@ export function HistoryList({
 
   return (
     <div className="flex flex-col gap-6">
-      {items.map((item) => (
+      {items.map((item, i) => (
         <HistoryRow
           key={item.topic_id}
           item={item}
+          index={i}
           isEditing={editingTopicId === item.topic_id}
           onToggleEdit={() =>
             setEditingTopicId((current) =>

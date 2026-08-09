@@ -25,11 +25,13 @@ function formatDate(value: string | null) {
 
 export function HistoryRow({
   item,
+  index,
   isEditing,
   onToggleEdit,
   onSave,
 }: {
   item: HistoryItem;
+  index?: number;
   isEditing: boolean;
   onToggleEdit: () => void;
   onSave: (patch: Partial<Pick<HistoryItem, "status" | "notes" | "completed_at">>) => void;
@@ -90,7 +92,7 @@ export function HistoryRow({
   }
 
   return (
-    <Card className="flex flex-col gap-3">
+    <Card index={index} className="flex flex-col gap-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border pb-2">
         <div className="flex items-center gap-2">
           <span className="font-mono text-xs font-bold uppercase text-signal">

@@ -220,11 +220,13 @@ export function useJobRowState({
 // ---------------------------------------------------------------------------
 export function JobCardMobile({
   job,
+  index,
   onStatusChange,
   onArchiveToggle,
   onDelete,
 }: {
   job: Job;
+  index?: number;
   onStatusChange: (id: string, status: JobStatus) => void;
   onArchiveToggle: (id: string, archived: boolean) => void;
   onDelete: (id: string) => void;
@@ -249,7 +251,7 @@ export function JobCardMobile({
   } = useJobRowState({ job, onStatusChange, onArchiveToggle, onDelete });
 
   return (
-    <Card className="flex flex-col gap-3">
+    <Card index={index} className="flex flex-col gap-3">
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1">
           <a
