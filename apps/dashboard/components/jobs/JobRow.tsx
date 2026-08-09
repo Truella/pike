@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Dropdown, type DropdownOption } from "@/components/ui/Dropdown";
 import { StatusTag } from "@/components/ui/StatusTag";
+import { Card } from "@/components/ui/Card";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/database.types";
 
@@ -173,94 +174,185 @@ export function JobRow({
   const currentColor = statusColors[status] || statusColors.saved;
 
   return (
-    <tr className="pike-border border-x-0 border-t-0 border-border last:border-b-0">
-      {/* Sticky Role Column on Mobile */}
-      <td className="sticky left-0 z-10 bg-surface px-4 py-4 align-top shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] md:static md:shadow-none">
-        <a
-          className="pike-display font-bold text-ink underline-offset-4 hover:text-signal hover:underline"
-          href={job.link}
-          rel="noreferrer"
-          target="_blank"
-        >
-          {job.title}
-        </a>
-        <p className="mt-1 text-sm text-muted">{job.company}</p>
-      </td>
-      <td className="px-4 py-4 align-top font-mono text-xs text-muted">
-        {job.source}
-      </td>
-      <td className="px-4 py-4 align-top font-mono text-xs text-muted">
-        {formatDate(job.found_at)}
-      </td>
-      <td className="px-4 py-4 align-top font-mono text-xs">
-        {showDatePicker ? (
-          <input
-            type="date"
-            value={followUpDate}
-            onChange={(e) => updateFollowUp(e.target.value)}
-            onBlur={() => setShowDatePicker(false)}
-            autoFocus
-            className="pike-border rounded-token border-border bg-background px-2 py-1 text-xs text-ink outline-none focus:border-signal"
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={() => setShowDatePicker(true)}
-            className="text-left outline-none hover:underline"
-          >
-            {isOverdue ? (
-              <div className="flex flex-col items-start gap-1">
-                <StatusTag variant="urgent">Overdue</StatusTag>
-                <span className="text-alert">{formatDate(job.follow_up_at)}</span>
-              </div>
-            ) : (
-              <span className="text-muted">{formatDate(job.follow_up_at)}</span>
-            )}
-          </button>
-        )}
-      </td>
-      <td className="px-4 py-4 align-top">
-        <Dropdown
-          options={dropdownOptions}
-          value={status}
-          onChange={updateStatus}
-          disabled={isSaving}
-          triggerClassName={`${currentColor.bg} ${currentColor.text}`}
-          ariaLabel={`Status for ${job.title}`}
-        />
-        {error ? (
-          <p className="mt-2 font-mono text-xs text-alert">Update failed</p>
-        ) : null}
-      </td>
-      <td className="px-4 py-4 align-top text-right">
-        <div className="relative inline-block text-left">
-          <button
-            type="button"
-            onClick={() => setMenuOpen((prev) => !prev)}
-            className="font-mono text-xs font-bold text-muted hover:text-ink px-2 py-1"
-          >
-            ⋮
-          </button>
-          {menuOpen && (
-            <div className="pike-border absolute right-0 z-50 mt-1 min-w-[120px] rounded-token border-border bg-surface py-1 shadow-token">
-              <button
-                type="button"
-                onClick={handleArchiveToggle}
-                className="flex w-full items-center px-3 py-1.5 text-left font-mono text-xs text-ink hover:bg-background"
+    <>
+      {/* Mobile Stacked Card View */}
+      <div className="md:hidden">
+        <Card className="flex flex-col gap-3">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1">
+              <a
+                className="pike-display font-bold text-ink underline-offset-4 hover:text-signal hover:underline"
+                href={job.link}
+                rel="noreferrer"
+                target="_blank"
               >
-                {job.archived ? "Unarchive" : "Archive"}
-              </button>
-              <button
-                type="button"
-                onClick={handleDelete}
-                className="flex w-full items-center px-3 py-1.5 text-left font-mono text-xs text-alert hover:bg-background"
-              >
-                Delete
-              </button>
+                {job.title}
+              </a>
+              <p className="mt-0.5 text-xs text-muted">{job.company}</p>
             </div>
+            <div className="flex items-center gap-2">
+              <Dropdown
+                options={dropdownOptions}
+                value={status}
+                onChange={updateStatus}
+                disabled={isSaving}
+                triggerClassName={`${currentColor.bg} ${currentColor.text}`}
+                ariaLabel={`Status for ${job.title}`}
+              />
+              <div className="relative inline-block text-left">
+                <button
+                  type="button"
+                  onClick={() => setMenuOpen((prev) => !prev)}
+                  className="font-mono text-xs font-bold text-muted hover:text-ink px-1 py-1"
+                >
+                  ⋮
+                </button>
+                {menuOpen && (
+                  <div className="pike-border absolute right-0 z-50 mt-1 min-w-[120px] rounded-token border-border bg-surface py-1 shadow-token">
+                    <button
+                      type="button"
+                      onClick={handleArchiveToggle}
+                      className="flex w-full items-center px-3 py-1.5 text-left font-mono text-xs text-ink hover:bg-background"
+                    >
+                      {job.archived ? "Unarchive" : "Archive"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDelete}
+                      className="flex w-full items-center px-3 py-1.5 text-left font-mono text-xs text-alert hover:bg-background"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-xs text-muted border-t border-border pt-2">
+            <span>Source: {job.source}</span>
+            <span>Found: {formatDate(job.found_at)}</span>
+            <div className="flex items-center gap-1">
+              <span>Follow-up:</span>
+              {showDatePicker ? (
+                <input
+                  type="date"
+                  value={followUpDate}
+                  onChange={(e) => updateFollowUp(e.target.value)}
+                  onBlur={() => setShowDatePicker(false)}
+                  autoFocus
+                  className="pike-border rounded-token border-border bg-background px-1.5 py-0.5 text-xs text-ink outline-none focus:border-signal"
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowDatePicker(true)}
+                  className="text-left outline-none hover:underline"
+                >
+                  {isOverdue ? (
+                    <span className="text-alert font-bold">{formatDate(job.follow_up_at)} (Overdue)</span>
+                  ) : (
+                    <span>{formatDate(job.follow_up_at)}</span>
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+          {error ? (
+            <p className="font-mono text-xs text-alert">Update failed</p>
+          ) : null}
+        </Card>
+      </div>
+
+      {/* Desktop Table Row View */}
+      <tr className="hidden md:table-row pike-border border-x-0 border-t-0 border-border last:border-b-0">
+        <td className="px-4 py-4 align-top">
+          <a
+            className="pike-display font-bold text-ink underline-offset-4 hover:text-signal hover:underline"
+            href={job.link}
+            rel="noreferrer"
+            target="_blank"
+          >
+            {job.title}
+          </a>
+          <p className="mt-1 text-sm text-muted">{job.company}</p>
+        </td>
+        <td className="px-4 py-4 align-top font-mono text-xs text-muted">
+          {job.source}
+        </td>
+        <td className="px-4 py-4 align-top font-mono text-xs text-muted">
+          {formatDate(job.found_at)}
+        </td>
+        <td className="px-4 py-4 align-top font-mono text-xs">
+          {showDatePicker ? (
+            <input
+              type="date"
+              value={followUpDate}
+              onChange={(e) => updateFollowUp(e.target.value)}
+              onBlur={() => setShowDatePicker(false)}
+              autoFocus
+              className="pike-border rounded-token border-border bg-background px-2 py-1 text-xs text-ink outline-none focus:border-signal"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowDatePicker(true)}
+              className="text-left outline-none hover:underline"
+            >
+              {isOverdue ? (
+                <div className="flex flex-col items-start gap-1">
+                  <StatusTag variant="urgent">Overdue</StatusTag>
+                  <span className="text-alert">{formatDate(job.follow_up_at)}</span>
+                </div>
+              ) : (
+                <span className="text-muted">{formatDate(job.follow_up_at)}</span>
+              )}
+            </button>
           )}
-        </div>
-      </td>
-    </tr>
+        </td>
+        <td className="px-4 py-4 align-top">
+          <Dropdown
+            options={dropdownOptions}
+            value={status}
+            onChange={updateStatus}
+            disabled={isSaving}
+            triggerClassName={`${currentColor.bg} ${currentColor.text}`}
+            ariaLabel={`Status for ${job.title}`}
+          />
+          {error ? (
+            <p className="mt-2 font-mono text-xs text-alert">Update failed</p>
+          ) : null}
+        </td>
+        <td className="px-4 py-4 align-top text-right">
+          <div className="relative inline-block text-left">
+            <button
+              type="button"
+              onClick={() => setMenuOpen((prev) => !prev)}
+              className="font-mono text-xs font-bold text-muted hover:text-ink px-2 py-1"
+            >
+              ⋮
+            </button>
+            {menuOpen && (
+              <div className="pike-border absolute right-0 z-50 mt-1 min-w-[120px] rounded-token border-border bg-surface py-1 shadow-token">
+                <button
+                  type="button"
+                  onClick={handleArchiveToggle}
+                  className="flex w-full items-center px-3 py-1.5 text-left font-mono text-xs text-ink hover:bg-background"
+                >
+                  {job.archived ? "Unarchive" : "Archive"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  className="flex w-full items-center px-3 py-1.5 text-left font-mono text-xs text-alert hover:bg-background"
+                >
+                  Delete
+                </button>
+              </div>
+            )}
+          </div>
+        </td>
+      </tr>
+    </>
   );
 }

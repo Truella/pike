@@ -194,15 +194,31 @@ export function JobsTable({ initialJobs }: { initialJobs: Job[] }) {
         <ExportButton jobs={sortedJobs} />
       </div>
 
-      {/* Table Container */}
-      <div className="pike-border mt-4 overflow-x-auto rounded-token border-border bg-surface shadow-token">
+      {/* Mobile Stacked Card View */}
+      <div className="mt-4 flex flex-col gap-4 md:hidden">
+        {paginatedJobs.length === 0 ? (
+          <div className="pike-border rounded-token border-border bg-surface p-6 text-center font-mono text-xs text-muted">
+            No listings found matching criteria.
+          </div>
+        ) : (
+          paginatedJobs.map((job) => (
+            <JobRow
+              job={job}
+              key={job.id}
+              onStatusChange={updateVisibleStatus}
+              onArchiveToggle={handleArchiveToggle}
+              onDelete={handleDelete}
+            />
+          ))
+        )}
+      </div>
+
+      {/* Desktop Table Container */}
+      <div className="pike-border mt-4 hidden overflow-x-auto rounded-token border-border bg-surface shadow-token md:block">
         <table className="w-full min-w-5xl border-collapse text-left">
           <thead>
             <tr className="pike-border border-x-0 border-t-0 border-border font-mono text-xs uppercase text-muted">
-              {/* Fixed Role Header on Mobile */}
-              <th className="sticky left-0 z-10 bg-surface px-4 py-3 font-bold shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] md:static md:shadow-none">
-                Role
-              </th>
+              <th className="px-4 py-3 font-bold">Role</th>
               <th className="px-4 py-3 font-bold">Source</th>
               <th
                 className="cursor-pointer px-4 py-3 font-bold hover:text-ink"
