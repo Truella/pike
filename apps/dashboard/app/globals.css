@@ -106,6 +106,28 @@
 
 * {
   box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pike-muted) var(--pike-surface);
+}
+
+/* Custom token-driven scrollbars for Webkit/Blink browsers */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--pike-surface);
+  border-radius: var(--pike-radius);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--pike-muted);
+  border-radius: var(--pike-radius);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--pike-ink);
 }
 
 body {
