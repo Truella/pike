@@ -18,6 +18,14 @@ export default async function ContentPage() {
     .in("status", ["needs_review", "approved", "scheduled"])
     .order("created_at", { ascending: false });
 
+  // Fetch published posts separately (read-only history), newest-published first
+  const { data: publishedPosts, error: publishedError } = await supabase
+    .from("pike_content")
+    .select("*")
+    .eq("user_id", user.id)
+    .eq("status", "published")
+    .order("published_at", { ascending: false });
+
   // Fetch topics bank (unused first, then used)
   const { data: topics, error: topicsError } = await supabase
     .from("pike_topics_bank")
@@ -47,7 +55,7 @@ export default async function ContentPage() {
     .neq("status", "rejected")
     .gte("created_at", weekStart.toISOString());
 
-  const error = postsError || topicsError;
+  const error = postsError || publishedError || topicsError;
 
   return (
     <main className="min-h-screen bg-background px-6 py-12 text-ink">
@@ -60,6 +68,7 @@ export default async function ContentPage() {
       ) : (
         <ContentDashboardClient
           posts={posts ?? []}
+          publishedPosts={publishedPosts ?? []}
           topics={topics ?? []}
           weeklyBuildCount={buildCount ?? 0}
           weeklyTrendCount={trendCount ?? 0}

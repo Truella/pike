@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { FormatToolbar } from "./FormatToolbar";
+import { formatScheduledTime, toLocalDatetimeInputValue } from "@/lib/dateUtils";
 import type { Database } from "@/lib/supabase/database.types";
 
 type ContentRow = Database["public"]["Tables"]["pike_content"]["Row"];
@@ -19,9 +20,7 @@ export function DraftCard({ post, index, onPostUpdate }: DraftCardProps) {
   const [isEditingText, setIsEditingText] = useState(false);
   const [draftText, setDraftText] = useState(post.draft_text);
   const [scheduledAt, setScheduledAt] = useState<string>(
-    post.scheduled_at
-      ? new Date(post.scheduled_at).toISOString().slice(0, 16)
-      : ""
+    post.scheduled_at ? toLocalDatetimeInputValue(post.scheduled_at) : ""
   );
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -149,16 +148,10 @@ export function DraftCard({ post, index, onPostUpdate }: DraftCardProps) {
       ? "text-signal"
       : "text-muted";
 
-  const formattedCreated = new Intl.DateTimeFormat("en", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(post.created_at));
+  const formattedCreated = formatScheduledTime(post.created_at);
 
   const formattedScheduled = post.scheduled_at
-    ? new Intl.DateTimeFormat("en", {
-        dateStyle: "medium",
-        timeStyle: "short",
-      }).format(new Date(post.scheduled_at))
+    ? formatScheduledTime(post.scheduled_at)
     : null;
 
   const textareaIsVisible = post.status === "needs_review" || isEditingText;

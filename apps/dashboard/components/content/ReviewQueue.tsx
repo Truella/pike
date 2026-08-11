@@ -2,17 +2,19 @@
 
 import { useState } from "react";
 import { DraftCard } from "./DraftCard";
+import { formatScheduledTime } from "@/lib/dateUtils";
 import type { Database } from "@/lib/supabase/database.types";
 
 type ContentRow = Database["public"]["Tables"]["pike_content"]["Row"];
-type ReviewSubTab = "needs_review" | "approved" | "scheduled";
+type ReviewSubTab = "needs_review" | "approved" | "scheduled" | "published";
 
 interface ReviewQueueProps {
   posts: ContentRow[];
+  publishedPosts: ContentRow[];
   onPostUpdate: (updatedPost: ContentRow) => void;
 }
 
-export function ReviewQueue({ posts, onPostUpdate }: ReviewQueueProps) {
+export function ReviewQueue({ posts, publishedPosts, onPostUpdate }: ReviewQueueProps) {
   const [activeSubTab, setActiveSubTab] = useState<ReviewSubTab>("needs_review");
 
   const needsReviewPosts = posts.filter((p) => p.status === "needs_review");
@@ -24,12 +26,15 @@ export function ReviewQueue({ posts, onPostUpdate }: ReviewQueueProps) {
       ? needsReviewPosts
       : activeSubTab === "approved"
       ? approvedPosts
-      : scheduledPosts;
+      : activeSubTab === "scheduled"
+      ? scheduledPosts
+      : publishedPosts;
 
   const emptyMessages: Record<ReviewSubTab, string> = {
     needs_review: "No drafts waiting for review.",
     approved: "No approved posts waiting to be scheduled.",
     scheduled: "No scheduled posts.",
+    published: "No published posts yet.",
   };
 
   return (
@@ -102,6 +107,27 @@ export function ReviewQueue({ posts, onPostUpdate }: ReviewQueueProps) {
               {scheduledPosts.length}
             </span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveSubTab("published")}
+            className={`flex items-center gap-2 rounded-token px-4 py-2 font-mono text-xs font-bold uppercase transition-colors ${
+              activeSubTab === "published"
+                ? "bg-ink text-background shadow-token"
+                : "bg-transparent text-muted hover:text-ink"
+            }`}
+          >
+            <span>Published</span>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] ${
+                activeSubTab === "published"
+                  ? "bg-signal text-background font-bold"
+                  : "bg-background text-muted"
+              }`}
+            >
+              {publishedPosts.length}
+            </span>
+          </button>
         </nav>
       </div>
 
@@ -109,6 +135,12 @@ export function ReviewQueue({ posts, onPostUpdate }: ReviewQueueProps) {
       {activePosts.length === 0 ? (
         <div className="pike-border rounded-token border-border bg-surface p-8 text-center font-mono text-xs text-muted shadow-token">
           {emptyMessages[activeSubTab]}
+        </div>
+      ) : activeSubTab === "published" ? (
+        <div className="flex flex-col gap-4">
+          {(activePosts as ContentRow[]).map((post) => (
+            <PublishedCard key={post.id} post={post} />
+          ))}
         </div>
       ) : (
         <div className="flex flex-col gap-4">
@@ -123,5 +155,50 @@ export function ReviewQueue({ posts, onPostUpdate }: ReviewQueueProps) {
         </div>
       )}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// PublishedCard — read-only record of a post that has already gone out.
+// ---------------------------------------------------------------------------
+
+interface PublishedCardProps {
+  post: ContentRow;
+}
+
+function PublishedCard({ post }: PublishedCardProps) {
+  const publishedLabel = post.published_at
+    ? formatScheduledTime(post.published_at)
+    : post.scheduled_at
+    ? formatScheduledTime(post.scheduled_at)
+    : "—";
+
+  return (
+    <article className="pike-border rounded-token border-border bg-surface p-4 shadow-token flex flex-col gap-3">
+      {/* Header */}
+      <div className="flex flex-wrap items-start justify-between gap-2 border-b border-border pb-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="font-mono text-xs font-bold uppercase text-signal">
+            {post.post_type === "build_update" ? "Build Update" : "Trend"}
+          </span>
+          <span className="font-mono text-xs font-bold uppercase text-muted">
+            Published
+          </span>
+          {post.source_type && (
+            <span className="font-mono text-xs text-muted">
+              ({post.source_type})
+            </span>
+          )}
+        </div>
+        <span className="font-mono text-xs text-muted">
+          Published: {publishedLabel}
+        </span>
+      </div>
+
+      {/* Post body — read-only */}
+      <p className="whitespace-pre-wrap rounded-token border border-border bg-background p-3 font-mono text-sm text-ink">
+        {post.draft_text}
+      </p>
+    </article>
   );
 }

@@ -35,11 +35,11 @@ const headers = {
   "Content-Type": "application/json",
 };
 
-// 1. Fetch approved posts with scheduled_at <= now(), oldest first
+// 1. Fetch scheduled posts with scheduled_at <= now(), oldest first
 const endpoint = new URL(`${supabaseUrl}/rest/v1/pike_content`);
 endpoint.searchParams.set("select", "id,draft_text,media_urls,post_type");
 endpoint.searchParams.set("user_id", `eq.${userId}`);
-endpoint.searchParams.set("status", "eq.approved");
+endpoint.searchParams.set("status", "eq.scheduled");
 endpoint.searchParams.set("scheduled_at", `lte.${new Date().toISOString()}`);
 endpoint.searchParams.set("order", "scheduled_at.asc");
 
@@ -49,7 +49,7 @@ if (!listRes.ok) {
 }
 
 const posts = await listRes.json();
-console.log(`Found ${posts.length} approved post(s) due for publishing.`);
+console.log(`Found ${posts.length} scheduled post(s) due for publishing.`);
 
 for (const post of posts) {
   try {
@@ -119,7 +119,7 @@ for (const post of posts) {
   } catch (err) {
     // 5. On failure, leave status unchanged and alert via Telegram
     console.error(`Post ${post.id} failed:`, err.message);
-    await notify(`Pike LinkedIn publish FAILED for post ${post.id}:\n${err.message}\n\nStatus left as 'approved' for next retry.`);
+    await notify(`Pike LinkedIn publish FAILED for post ${post.id}:\n${err.message}\n\nStatus left as 'scheduled' for next retry.`);
   }
 }
 

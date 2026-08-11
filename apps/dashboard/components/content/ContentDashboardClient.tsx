@@ -11,6 +11,7 @@ type TopLevelTab = "review" | "topics";
 
 interface ContentDashboardClientProps {
   posts: ContentRow[];
+  publishedPosts: ContentRow[];
   topics: TopicRow[];
   weeklyBuildCount: number;
   weeklyTrendCount: number;
@@ -18,6 +19,7 @@ interface ContentDashboardClientProps {
 
 export function ContentDashboardClient({
   posts,
+  publishedPosts,
   topics,
   weeklyBuildCount,
   weeklyTrendCount,
@@ -115,7 +117,7 @@ export function ContentDashboardClient({
 
       {/* Active Tab View */}
       {topTab === "review" ? (
-        <ReviewQueue posts={items} onPostUpdate={handlePostUpdate} />
+        <ReviewQueue posts={items} publishedPosts={publishedPosts} onPostUpdate={handlePostUpdate} />
       ) : (
         <div className="max-w-3xl">
           <TopicsBank initialTopics={topics} />
