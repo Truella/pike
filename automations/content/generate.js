@@ -36,57 +36,74 @@ if (counts.build_update >= WEEKLY_TARGET && counts.trend >= WEEKLY_TARGET) {
   process.exit(0);
 }
 
-// 2. Determine which type is lagging (build_update wins a tie)
-const postType =
+// 2. Determine primary and secondary post types
+const primaryType =
   counts.build_update <= counts.trend ? "build_update" : "trend";
-console.log(`Generating a ${postType} post...`);
+const secondaryType = primaryType === "build_update" ? "trend" : "build_update";
 
-// 3. Select source material
-let draftText;
-let sourceType;
-let sourceRef;
-
-if (postType === "build_update") {
-  const result = await getBuildUpdateSource(supabaseUrl, serviceRoleKey, userId);
-  if (!result.found) {
-    console.log("No recent activity found. A manual note is required for a build_update post. Exiting.");
-    process.exit(0);
+async function fetchSourceForType(type) {
+  if (type === "build_update") {
+    const result = await getBuildUpdateSource(supabaseUrl, serviceRoleKey, userId);
+    if (!result.found) return null;
+    return {
+      postType: "build_update",
+      sourceType: "activity_scan",
+      sourceRef: result.sourceRef,
+      prompt: buildBuildUpdatePrompt(result.source),
+      onSuccess: null,
+    };
+  } else {
+    const result = await getTrendSource(supabaseUrl, serviceRoleKey, userId, groqApiKey);
+    if (!result.found) return null;
+    return {
+      postType: "trend",
+      sourceType: "topics_bank",
+      sourceRef: result.topicId,
+      prompt: buildTrendPrompt(result.source),
+      onSuccess: async () => {
+        // Mark topic as used
+        const updateEndpoint = new URL(`${supabaseUrl}/rest/v1/pike_topics_bank`);
+        updateEndpoint.searchParams.set("id", `eq.${result.topicId}`);
+        updateEndpoint.searchParams.set("user_id", `eq.${userId}`);
+        await fetch(updateEndpoint, {
+          method: "PATCH",
+          headers: { ...headers, Prefer: "return=minimal" },
+          body: JSON.stringify({ used: true, used_at: new Date().toISOString() }),
+        });
+      },
+    };
   }
-  sourceType = "activity_scan";
-  sourceRef = result.sourceRef;
-
-  // 4. Compose prompt and call Groq
-  const prompt = buildBuildUpdatePrompt(result.source);
-  draftText = await callGroq(prompt);
-} else {
-  const result = await getTrendSource(supabaseUrl, serviceRoleKey, userId, groqApiKey);
-  sourceType = "topics_bank";
-  sourceRef = result.topicId;
-
-  // Mark topic as used
-  const updateEndpoint = new URL(`${supabaseUrl}/rest/v1/pike_topics_bank`);
-  updateEndpoint.searchParams.set("id", `eq.${result.topicId}`);
-  updateEndpoint.searchParams.set("user_id", `eq.${userId}`);
-  await fetch(updateEndpoint, {
-    method: "PATCH",
-    headers: { ...headers, Prefer: "return=minimal" },
-    body: JSON.stringify({ used: true, used_at: new Date().toISOString() }),
-  });
-
-  const prompt = buildTrendPrompt(result.source);
-  draftText = await callGroq(prompt);
 }
+
+// 3. Try primary type first, then fallback to secondary type if primary has no source
+console.log(`Attempting source selection for primary type: ${primaryType}...`);
+let sourceConfig = await fetchSourceForType(primaryType);
+
+if (!sourceConfig) {
+  console.log(`No source found for ${primaryType}. Attempting fallback type: ${secondaryType}...`);
+  sourceConfig = await fetchSourceForType(secondaryType);
+}
+
+if (!sourceConfig) {
+  console.log("No source material available for build_update or trend. Skipping draft generation.");
+  process.exit(0);
+}
+
+console.log(`Generating a ${sourceConfig.postType} post...`);
+
+// 4. Compose prompt and call Groq
+const draftText = await callGroq(sourceConfig.prompt);
 
 // 5. Insert draft into pike_content with status = needs_review
 const insertEndpoint = new URL(`${supabaseUrl}/rest/v1/pike_content`);
 const insertRes = await fetch(insertEndpoint, {
   method: "POST",
-  headers: { ...headers, Prefer: "return=minimal" },
+  headers: { ...headers, Prefer: "return=representation" },
   body: JSON.stringify({
     user_id: userId,
-    post_type: postType,
-    source_type: sourceType,
-    source_ref: sourceRef,
+    post_type: sourceConfig.postType,
+    source_type: sourceConfig.sourceType,
+    source_ref: sourceConfig.sourceRef,
     draft_text: draftText,
     status: "needs_review",
   }),
@@ -96,7 +113,16 @@ if (!insertRes.ok) {
   throw new Error(`Failed to insert draft (${insertRes.status}): ${await insertRes.text()}`);
 }
 
-console.log(`Draft inserted with status=needs_review (type: ${postType}).`);
+const insertedRows = await insertRes.json();
+if (insertedRows.error || !Array.isArray(insertedRows) || insertedRows.length === 0) {
+  throw new Error(`Supabase insert failed: ${JSON.stringify(insertedRows.error || insertedRows)}`);
+}
+
+if (sourceConfig.onSuccess) {
+  await sourceConfig.onSuccess();
+}
+
+console.log(`CONFIRMED_INSERT: Draft inserted with status=needs_review (id: ${insertedRows[0].id}, type: ${sourceConfig.postType}).`);
 
 // ---- helpers ----
 

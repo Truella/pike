@@ -4,7 +4,7 @@
  *
  * Logic:
  * 1. Count approved/scheduled rows (the ready-to-publish buffer).
- * 2. If below threshold, run generate.js enough times to refill, notify Telegram.
+ * 2. If below threshold, run generate.js enough times to refill, notify Telegram with confirmed insert count.
  * 3. If at or above threshold, exit silently.
  * 4. Always update the pike-content module heartbeat.
  */
@@ -55,28 +55,35 @@ console.log(`Buffer: ${bufferCount} approved/scheduled posts (threshold: ${thres
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const generateScript = path.join(__dirname, "generate.js");
-let generated = 0;
+let confirmedInserts = 0;
 
 // 2. Generate only if below threshold
 if (bufferCount < threshold) {
   const needed = threshold - bufferCount;
-  console.log(`Buffer low. Generating ${needed} new draft(s)...`);
+  console.log(`Buffer low (${bufferCount}/${threshold}). Planned generation target: ${needed} new draft(s)...`);
 
   for (let i = 0; i < needed; i++) {
     try {
-      execFileSync("node", [generateScript], {
-        stdio: "inherit",
+      const output = execFileSync("node", [generateScript], {
+        encoding: "utf8",
         env: process.env,
       });
-      generated++;
+      console.log(output);
+      if (output.includes("CONFIRMED_INSERT")) {
+        confirmedInserts++;
+      }
     } catch (err) {
       console.error(`Generation run ${i + 1} failed:`, err.message);
     }
   }
 
-  if (generated > 0) {
+  if (confirmedInserts > 0) {
     await notify(
-      `Pike Content: ${generated} new draft(s) added to the review queue. Open the dashboard to review and approve.`
+      `Pike Content: ${confirmedInserts} new draft(s) added to the review queue. Open the dashboard to review and approve.`
+    );
+  } else {
+    await notify(
+      `Pike Content: 0 new draft(s) added to the review queue.`
     );
   }
 } else {
