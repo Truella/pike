@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { FormatToolbar } from "./FormatToolbar";
 import type { Database } from "@/lib/supabase/database.types";
 
 type ContentRow = Database["public"]["Tables"]["pike_content"]["Row"];
@@ -24,6 +25,10 @@ export function DraftCard({ post, index, onPostUpdate }: DraftCardProps) {
   );
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Ref shared between FormatToolbar and the textarea so the toolbar can
+  // read selectionStart/selectionEnd without pulling focus away.
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   async function mutate(updates: Partial<ContentRow>): Promise<ContentRow | null> {
     const supabase = createClient();
@@ -55,17 +60,15 @@ export function DraftCard({ post, index, onPostUpdate }: DraftCardProps) {
     setIsSaving(true);
     setError(null);
 
-    const hasScheduleDate = Boolean(scheduledAt);
+    const hasDate = Boolean(scheduledAt);
     const updates: Partial<ContentRow> = {
       draft_text: draftText,
-      status: hasScheduleDate ? "scheduled" : "approved",
-      scheduled_at: hasScheduleDate ? new Date(scheduledAt).toISOString() : null,
+      status: hasDate ? "scheduled" : "approved",
+      scheduled_at: hasDate ? new Date(scheduledAt).toISOString() : null,
     };
 
     const updated = await mutate(updates);
-    if (updated) {
-      onPostUpdate(updated);
-    }
+    if (updated) onPostUpdate(updated);
     setIsSaving(false);
   }
 
@@ -73,13 +76,11 @@ export function DraftCard({ post, index, onPostUpdate }: DraftCardProps) {
     setIsSaving(true);
     setError(null);
     const updated = await mutate({ status: "rejected" });
-    if (updated) {
-      onPostUpdate(updated);
-    }
+    if (updated) onPostUpdate(updated);
     setIsSaving(false);
   }
 
-  // --- Text Save action ---
+  // --- Text Save (for Approved/Scheduled edit mode) ---
   async function handleSaveText() {
     setIsSaving(true);
     setError(null);
@@ -91,70 +92,54 @@ export function DraftCard({ post, index, onPostUpdate }: DraftCardProps) {
     setIsSaving(false);
   }
 
-  // --- Schedule actions for Approved & Scheduled tabs ---
+  // --- Scheduling actions ---
   async function handleSchedulePost() {
-    if (!scheduledAt) {
-      setError("Please pick a schedule date & time.");
-      return;
-    }
+    if (!scheduledAt) { setError("Please pick a schedule date & time."); return; }
     setIsSaving(true);
     setError(null);
-
     const updated = await mutate({
       status: "scheduled",
       scheduled_at: new Date(scheduledAt).toISOString(),
     });
-    if (updated) {
-      onPostUpdate(updated);
-    }
+    if (updated) onPostUpdate(updated);
     setIsSaving(false);
   }
 
   async function handleUpdateScheduleDate() {
-    if (!scheduledAt) {
-      setError("Please pick a schedule date & time.");
-      return;
-    }
+    if (!scheduledAt) { setError("Please pick a schedule date & time."); return; }
     setIsSaving(true);
     setError(null);
-
-    const updated = await mutate({
-      scheduled_at: new Date(scheduledAt).toISOString(),
-    });
-    if (updated) {
-      onPostUpdate(updated);
-    }
+    const updated = await mutate({ scheduled_at: new Date(scheduledAt).toISOString() });
+    if (updated) onPostUpdate(updated);
     setIsSaving(false);
   }
 
   async function handleUnschedule() {
     setIsSaving(true);
     setError(null);
-
-    const updated = await mutate({
-      status: "approved",
-      scheduled_at: null,
-    });
-    if (updated) {
-      setScheduledAt("");
-      onPostUpdate(updated);
-    }
+    const updated = await mutate({ status: "approved", scheduled_at: null });
+    if (updated) { setScheduledAt(""); onPostUpdate(updated); }
     setIsSaving(false);
   }
 
   async function handleRevertToReview() {
     setIsSaving(true);
     setError(null);
-
-    const updated = await mutate({
-      status: "needs_review",
-      scheduled_at: null,
-    });
-    if (updated) {
-      setScheduledAt("");
-      onPostUpdate(updated);
-    }
+    const updated = await mutate({ status: "needs_review", scheduled_at: null });
+    if (updated) { setScheduledAt(""); onPostUpdate(updated); }
     setIsSaving(false);
+  }
+
+  // --- FormatToolbar callback ---
+  function handleFormatChange(newValue: string, selStart: number, selEnd: number) {
+    setDraftText(newValue);
+    // Re-apply selection after React re-renders
+    requestAnimationFrame(() => {
+      const el = textareaRef.current;
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(selStart, selEnd);
+    });
   }
 
   const statusColor =
@@ -175,6 +160,8 @@ export function DraftCard({ post, index, onPostUpdate }: DraftCardProps) {
         timeStyle: "short",
       }).format(new Date(post.scheduled_at))
     : null;
+
+  const textareaIsVisible = post.status === "needs_review" || isEditingText;
 
   return (
     <Card index={index} className="flex flex-col gap-4">
@@ -198,7 +185,7 @@ export function DraftCard({ post, index, onPostUpdate }: DraftCardProps) {
           <span className="font-mono text-xs text-muted">
             Created: {formattedCreated}
           </span>
-          {/* Pen / Edit icon toggles ONLY draft text editing */}
+          {/* Pen icon toggles text-edit mode only — visible on Approved & Scheduled */}
           {post.status !== "needs_review" && (
             <button
               type="button"
@@ -207,16 +194,23 @@ export function DraftCard({ post, index, onPostUpdate }: DraftCardProps) {
               className="flex items-center gap-1 font-mono text-xs font-bold text-muted hover:text-signal transition-colors"
             >
               <span>✏️</span>
-              <span>{isEditingText ? "Close Text Edit" : "Edit Text"}</span>
+              <span>{isEditingText ? "Close" : "Edit Text"}</span>
             </button>
           )}
         </div>
       </div>
 
-      {/* Draft Text Display / Textarea */}
-      {post.status === "needs_review" || isEditingText ? (
+      {/* Draft text area (editable with toolbar, or read-only) */}
+      {textareaIsVisible ? (
         <div className="flex flex-col gap-2">
+          <FormatToolbar
+            textareaRef={textareaRef}
+            value={draftText}
+            onChange={handleFormatChange}
+            disabled={isSaving}
+          />
           <textarea
+            ref={textareaRef}
             id={`draft-${post.id}`}
             rows={7}
             className="pike-border rounded-token border-border bg-background p-3 font-mono text-sm text-ink outline-none focus:border-signal disabled:opacity-60 resize-y"
@@ -224,6 +218,7 @@ export function DraftCard({ post, index, onPostUpdate }: DraftCardProps) {
             onChange={(e) => setDraftText(e.target.value)}
             disabled={isSaving}
           />
+          {/* Save Text button — only shown in post-approval edit mode */}
           {post.status !== "needs_review" && (
             <div className="flex justify-end">
               <Button
@@ -242,17 +237,15 @@ export function DraftCard({ post, index, onPostUpdate }: DraftCardProps) {
         </p>
       )}
 
-      {/* Always-visible Schedule Controls & Actions */}
+      {/* Always-visible scheduling row & action buttons */}
       <div className="flex flex-wrap items-end justify-between gap-4 border-t border-border pt-3">
-        {/* Date Picker (Always visible) */}
+        {/* Date picker — always visible */}
         <div className="flex flex-col gap-1 max-w-xs">
           <label
             htmlFor={`schedule-${post.id}`}
             className="font-mono text-xs font-bold uppercase text-muted"
           >
-            {post.status === "scheduled"
-              ? "Scheduled for"
-              : "Schedule for (optional)"}
+            {post.status === "scheduled" ? "Scheduled for" : "Schedule for (optional)"}
           </label>
           <input
             id={`schedule-${post.id}`}
@@ -264,23 +257,14 @@ export function DraftCard({ post, index, onPostUpdate }: DraftCardProps) {
           />
         </div>
 
-        {/* Action Buttons */}
+        {/* Action buttons per status */}
         <div className="flex flex-wrap items-center gap-2">
           {post.status === "needs_review" && (
             <>
-              <Button
-                type="button"
-                disabled={isSaving}
-                onClick={handleApprove}
-              >
+              <Button type="button" disabled={isSaving} onClick={handleApprove}>
                 {scheduledAt ? "Approve & Schedule" : "Approve"}
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={isSaving}
-                onClick={handleReject}
-              >
+              <Button type="button" variant="outline" disabled={isSaving} onClick={handleReject}>
                 Reject
               </Button>
             </>
@@ -288,11 +272,7 @@ export function DraftCard({ post, index, onPostUpdate }: DraftCardProps) {
 
           {post.status === "approved" && (
             <>
-              <Button
-                type="button"
-                disabled={isSaving || !scheduledAt}
-                onClick={handleSchedulePost}
-              >
+              <Button type="button" disabled={isSaving || !scheduledAt} onClick={handleSchedulePost}>
                 Schedule
               </Button>
               <button
@@ -344,9 +324,7 @@ export function DraftCard({ post, index, onPostUpdate }: DraftCardProps) {
       </div>
 
       {error && <p className="font-mono text-xs text-alert">{error}</p>}
-      {isSaving && (
-        <p className="font-mono text-xs text-muted animate-pulse">Saving…</p>
-      )}
+      {isSaving && <p className="font-mono text-xs text-muted animate-pulse">Saving…</p>}
     </Card>
   );
 }
