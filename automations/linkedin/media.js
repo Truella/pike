@@ -13,9 +13,12 @@ const LINKEDIN_API_BASE = "https://api.linkedin.com";
  * @param {string} imagePathOrBuffer - Absolute path to an image file, or a Buffer.
  * @param {string} linkedinAccessToken - OAuth 2.0 access token with w_member_social scope.
  * @param {string} linkedinPersonUrn - The authenticated member's URN (urn:li:person:<id>).
+ * @param {string} linkedinApiVersion - LinkedIn-Version header value in YYYYMM format (e.g. "202607").
+ *   LinkedIn versions sunset on a rolling ~12-month basis; update the LINKEDIN_API_VERSION secret
+ *   rather than editing this file when a new version is required.
  * @returns {Promise<string>} The image URN to reference in a post payload.
  */
-export async function uploadImageToLinkedIn(imagePathOrBuffer, linkedinAccessToken, linkedinPersonUrn) {
+export async function uploadImageToLinkedIn(imagePathOrBuffer, linkedinAccessToken, linkedinPersonUrn, linkedinApiVersion) {
   // Resolve image buffer
   let imageBuffer;
   if (typeof imagePathOrBuffer === "string") {
@@ -42,7 +45,7 @@ export async function uploadImageToLinkedIn(imagePathOrBuffer, linkedinAccessTok
       headers: {
         Authorization: `Bearer ${linkedinAccessToken}`,
         "Content-Type": "application/json",
-        "LinkedIn-Version": "202504",
+        "LinkedIn-Version": linkedinApiVersion, // YYYYMM — update LINKEDIN_API_VERSION secret annually
         "X-Restli-Protocol-Version": "2.0.0",
       },
       body: JSON.stringify({

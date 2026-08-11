@@ -25,4 +25,7 @@ jobs:
           LINKEDIN_PERSON_URN: ${{ secrets.LINKEDIN_PERSON_URN }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          # LinkedIn-Version header (YYYYMM format). Versions sunset ~12 months after release.
+          # Update this secret (not this file) when LinkedIn announces a deprecation.
+          LINKEDIN_API_VERSION: ${{ secrets.LINKEDIN_API_VERSION }}
         run: node automations/linkedin/publish.js

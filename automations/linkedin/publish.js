@@ -10,6 +10,7 @@ const requiredEnvironment = [
   "LINKEDIN_PERSON_URN",
   "TELEGRAM_BOT_TOKEN",
   "TELEGRAM_CHAT_ID",
+  "LINKEDIN_API_VERSION",
 ];
 
 const missing = requiredEnvironment.filter((name) => !process.env[name]);
@@ -22,6 +23,11 @@ const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const userId = process.env.PIKE_OWNER_USER_ID;
 const accessToken = process.env.LINKEDIN_ACCESS_TOKEN;
 const personUrn = process.env.LINKEDIN_PERSON_URN;
+// LinkedIn-Version uses YYYYMM format (e.g. 202607 = July 2026).
+// Each version is supported for ~12 months before sunset. When LinkedIn
+// announces a deprecation, update the LINKEDIN_API_VERSION GitHub secret
+// — no code change required. Current confirmed active version: 202607.
+const linkedinApiVersion = process.env.LINKEDIN_API_VERSION;
 
 const headers = {
   apikey: serviceRoleKey,
@@ -51,7 +57,7 @@ for (const post of posts) {
     const mediaUrns = [];
     if (post.media_urls && post.media_urls.length > 0) {
       for (const mediaUrl of post.media_urls) {
-        const urn = await uploadImageToLinkedIn(mediaUrl, accessToken, personUrn);
+        const urn = await uploadImageToLinkedIn(mediaUrl, accessToken, personUrn, linkedinApiVersion);
         mediaUrns.push(urn);
       }
     }
@@ -84,7 +90,7 @@ for (const post of posts) {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
-        "LinkedIn-Version": "202504",
+        "LinkedIn-Version": linkedinApiVersion, // YYYYMM — update secret annually, see comment above
         "X-Restli-Protocol-Version": "2.0.0",
       },
       body: JSON.stringify(postPayload),
